@@ -31,3 +31,10 @@ class SongRead(SongBase):
     """Response schema returned for song resources."""
 
     id: UUID
+
+
+class SongUpdate(SQLModel):
+    """Request schema for updating a song."""
+
+    album: str | None = None
+    release_year: int | None = None

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from uuid import UUID
 from src.database import get_session
-from src.models.song import Song, SongCreate, SongRead
+from src.models.song import Song, SongCreate, SongRead, SongUpdate
 
 router = APIRouter()
 
@@ -47,3 +47,19 @@ def delete_song(song_id: UUID, session: Session = Depends(get_session)):
     session.delete(song)
     session.commit()
     return {"ok": True}
+
+
+@router.put("/{song_id}", response_model=SongRead)
+def update_song(
+    song_id: UUID, song_data: SongUpdate, session: Session = Depends(get_session)
+):
+    song = session.get(Song, song_id)
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+
+    song_update = song_data.model_dump(exclude_unset=True)
+    song.sqlmodel_update(song_update)
+    session.add(song)
+    session.commit()
+    session.refresh(song)
+    return song
