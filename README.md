@@ -26,7 +26,7 @@ docker compose up
 
 Then run the FastAPI app in a separate terminal:
 ```bash
-uvicorn src.main:app --reload
+python main.py
 ```
 
 ## Database Schema

@@ -4,9 +4,10 @@ This module creates the application instance, registers API routers,
 and initializes the database on startup.
 """
 
-from fastapi import FastAPI
 from src.database import init_db
 from src.routers import songs
+
+from fastapi import FastAPI
 
 app = FastAPI(title="Setlist API")
 
