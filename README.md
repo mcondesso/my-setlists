@@ -28,3 +28,11 @@ Then run the FastAPI app in a separate terminal:
 ```bash
 uvicorn src.main:app --reload
 ```
+
+## Database Schema
+
+The database schema is shown below. The diagram was generated with dbdiagram.io:
+
+- Diagram link: https://dbdiagram.io/d/MySetlists-6a3969b39340ecc065ef0adf
+
+![Database schema](docs/my-setlists-schema.png)
