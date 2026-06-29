@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
     POSTGRES_PORT: int = 5432
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    SECRET_KEY: str
 
     @property
     def DATABASE_URL(self) -> str:
