@@ -15,12 +15,16 @@ class Settings(BaseSettings):
     @property
     def DATABASE_URL(self) -> str:
         """Build the SQLAlchemy database URL from configured environment values."""
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOSTNAME}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        return (
+            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
+            f"{self.POSTGRES_HOSTNAME}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
 
     class Config:
         """Configuration for Pydantic settings behavior."""
 
         env_file = ".env"
+
 
 # The params are read from .env at runtime
 settings = Settings()  # type: ignore
