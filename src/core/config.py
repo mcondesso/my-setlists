@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Strongly typed settings for database and application configuration."""
 
+    POSTGRES_HOSTNAME: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
@@ -14,7 +15,7 @@ class Settings(BaseSettings):
     @property
     def DATABASE_URL(self) -> str:
         """Build the SQLAlchemy database URL from configured environment values."""
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@localhost:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOSTNAME}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     class Config:
         """Configuration for Pydantic settings behavior."""
