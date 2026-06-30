@@ -32,3 +32,31 @@ def authenticate_user(
     if not verify_password(password, user.password):
         return None
     return user
+
+
+def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    session: Annotated[Session, Depends(get_session)],
+) -> User:
+    """
+    FastAPI dependency that extracts and validates the JWT from the request
+    and returns the corresponding user from the database.
+
+    Raises HTTP 401 if the token is missing, invalid, expired, or the user
+    no longer exists in the database.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        user_id = decode_token(token)
+    except jwt.InvalidTokenError:
+        raise credentials_exception
+
+    user = session.get(User, user_id)
+    if not user:
+        raise credentials_exception
+
+    return user
