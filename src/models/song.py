@@ -19,6 +19,9 @@ class Song(SongBase, table=True):
     """Database model representing a stored song."""
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
+    mbid: str = Field(max_length=36, unique=True)
+    title: str = Field(max_length=255, min_length=1)
+    artist: str = Field(max_length=255, min_length=1)
 
 
 class SongCreate(SongBase):
