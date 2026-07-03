@@ -69,7 +69,7 @@ def delete_song(
     return {"ok": True}
 
 
-@router.put("/{song_id}", response_model=SongRead)
+@router.patch("/{song_id}", response_model=SongRead)
 def update_song(
     song_id: UUID,
     song_data: SongUpdate,
