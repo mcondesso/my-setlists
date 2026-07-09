@@ -39,6 +39,6 @@ def delete_current_user(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> None:
-    """Delete the currently authenticated user's account."""
+    """Delete the currently authenticated user's account and all owned setlists."""
     session.delete(current_user)
     session.commit()
