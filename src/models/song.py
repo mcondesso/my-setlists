@@ -1,8 +1,13 @@
 """Song domain models and request/response schemas."""
 
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlmodel import Field, SQLModel
+from sqlalchemy.orm import Mapped
+from sqlmodel import Field, SQLModel, Relationship
+
+if TYPE_CHECKING:
+    from src.models.setlist import SetlistEntry
 
 
 class SongBase(SQLModel):
@@ -23,11 +28,17 @@ class Song(SongBase, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
 
+    # Relationships
+    entries: Mapped[list["SetlistEntry"]] = Relationship(
+        back_populates="song",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
 
 class SongCreate(SongBase):
     """Request schema for saving a new song."""
 
-    pass
+    setlist_ids: list[UUID] = Field(default_factory=list)
 
 
 class SongRead(SongBase):
@@ -37,7 +48,9 @@ class SongRead(SongBase):
 
 
 class SongUpdate(SQLModel):
-    """Request schema for updating a song."""
+    """Request schema for updating a song's mutable fields."""
 
     album: str | None = Field(default=None, max_length=255)
     release_year: int | None = Field(default=None)
+    setlist_ids_to_add: list[UUID] = Field(default_factory=list)
+    setlist_ids_to_remove: list[UUID] = Field(default_factory=list)
