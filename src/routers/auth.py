@@ -9,19 +9,24 @@ from sqlmodel import Session, select
 from src.core.dependencies import authenticate_user
 from src.core.security import create_token, hash_password
 from src.database import get_session
+from src.models.setlist import Setlist
 from src.models.token import Token
 from src.models.user import User, UserCreate, UserRead
 
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=UserRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def register(
     user_data: UserCreate,
     session: Annotated[Session, Depends(get_session)],
 ) -> User:
     """
-    Create a new user account.
+    Create a new user account and their library setlist.
 
     Raises HTTP 400 if the email is already registered.
     """
@@ -40,6 +45,15 @@ def register(
         password=hash_password(user_data.password),
     )
     session.add(user)
+    session.flush()
+
+    library = Setlist(
+        user_id=user.id,
+        name="Library",
+        is_library=True,
+        is_public=False,
+    )
+    session.add(library)
     session.commit()
     session.refresh(user)
     return user
