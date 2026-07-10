@@ -140,10 +140,12 @@ def test_delete_song_keeps_song_if_other_user_has_entry(session: Session) -> Non
     session.add(song)
     session.flush()
 
-    session.add_all([
-        SetlistEntry(setlist_id=s1.id, song_id=song.id, position=1),
-        SetlistEntry(setlist_id=s2.id, song_id=song.id, position=1),
-    ])
+    session.add_all(
+        [
+            SetlistEntry(setlist_id=s1.id, song_id=song.id, position=1),
+            SetlistEntry(setlist_id=s2.id, song_id=song.id, position=1),
+        ]
+    )
     session.commit()
 
     delete_song(song.id, session, user1)

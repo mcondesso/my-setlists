@@ -110,9 +110,7 @@ def create_song(
     setlist_ids = song_data.setlist_ids
     validate_user_setlist_ids(setlist_ids, current_user.id, session)
 
-    song = session.exec(
-        select(Song).where(Song.mbid == song_data.mbid)
-    ).first()
+    song = session.exec(select(Song).where(Song.mbid == song_data.mbid)).first()
 
     if not song:
         song = Song(

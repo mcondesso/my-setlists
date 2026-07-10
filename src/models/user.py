@@ -1,7 +1,7 @@
 """User domain models and request/response schemas."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from pydantic import EmailStr

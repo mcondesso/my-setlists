@@ -82,7 +82,9 @@ def test_get_setlist_songs_allows_public_setlist_access(session: Session) -> Non
 
 def test_get_setlist_restricts_private_access_to_owner(session: Session) -> None:
     owner = User(email="owner3@example.com", display_name="Owner3", password="secret")
-    viewer = User(email="viewer3@example.com", display_name="Viewer3", password="secret")
+    viewer = User(
+        email="viewer3@example.com", display_name="Viewer3", password="secret"
+    )
     session.add_all([owner, viewer])
     session.flush()
 
