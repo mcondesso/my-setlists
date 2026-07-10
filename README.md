@@ -45,7 +45,6 @@ The test suite includes:
 - **test_users.py**: User authentication, profile management, and cascade deletion
 - **test_songs.py**: Song CRUD operations and setlist associations
 - **test_setlists.py**: Setlist management, song addition/removal, and access control
-- **test_routes.py**: Additional integration tests
 
 All tests use an in-memory SQLite database for isolation and speed (16 tests pass in ~0.5s).
 
