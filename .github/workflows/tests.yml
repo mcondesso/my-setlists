@@ -1,0 +1,44 @@
+name: Python tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: test
+
+    env:
+      POSTGRES_HOSTNAME: ${{ secrets.POSTGRES_HOSTNAME }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      POSTGRES_PORT: ${{ vars.POSTGRES_PORT }}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.ACCESS_TOKEN_EXPIRE_MINUTES }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pytest
+        run: python -m pytest tests/ -q
