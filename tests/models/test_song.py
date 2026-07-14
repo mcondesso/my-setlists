@@ -43,16 +43,12 @@ def test_create_song_only_adds_to_explicitly_requested_setlists(
 
 
 def test_get_songs_returns_all_songs(session: Session) -> None:
-    user = User(email="viewer2@example.com", display_name="Viewer2", password="secret")
-    session.add(user)
-    session.flush()
-
     song_a = Song(mbid="mbid-a", title="A", artist="Artist")
     song_b = Song(mbid="mbid-b", title="B", artist="Artist")
     session.add_all([song_a, song_b])
     session.commit()
 
-    songs = get_songs(session, user)
+    songs = get_songs(session)
 
     assert len(songs) == 2
     assert {song.mbid for song in songs} == {"mbid-a", "mbid-b"}

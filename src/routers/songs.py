@@ -89,7 +89,6 @@ def validate_user_setlist_ids(
 @router.get("/", response_model=list[SongRead])
 def get_songs(
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[Song]:
     """Return all songs in the global songs table."""
     return list(session.exec(select(Song)).all())
