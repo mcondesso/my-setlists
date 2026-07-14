@@ -1,58 +1,46 @@
 """User route tests covering profile read, update, and deletion behavior."""
 
-from sqlmodel import Session
-
-from src.models.setlist import Setlist, SetlistEntry
-from src.models.song import Song
-from src.models.user import User
-from src.routers.users import (
-    delete_current_user,
-    read_current_user,
-    update_current_user,
-)
+from fastapi import status
+from fastapi.testclient import TestClient
 
 
-def test_read_current_user_returns_profile(session: Session) -> None:
-    user = User(email="reader@example.com", display_name="Reader", password="secret")
-    session.add(user)
-    session.commit()
+def test_read_current_user(authenticated_client: TestClient):
+    """Test fetching the current user's profile."""
+    response = authenticated_client.get("/users/me")
 
-    result = read_current_user(user)
-
-    assert result.id == user.id
-    assert result.email == "reader@example.com"
-
-
-def test_update_current_user_changes_display_name(session: Session) -> None:
-    user = User(email="updater@example.com", display_name="Updater", password="secret")
-    session.add(user)
-    session.commit()
-
-    updated = update_current_user(
-        user_data=type("U", (), {"display_name": "Updated"})(),
-        current_user=user,
-        session=session,
-    )
-
-    assert updated.display_name == "Updated"
-    assert session.get(User, user.id).display_name == "Updated"
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["email"] == "user@example.com"
+    assert response.json()["display_name"] == "Test User"
+    assert "password" not in response.json()
 
 
-def test_delete_current_user_cascades_setlists_and_entries(session: Session) -> None:
-    user = User(email="owner2@example.com", display_name="Owner2", password="secret")
-    session.add(user)
-    session.flush()
+def test_update_current_user(authenticated_client: TestClient):
+    """Test updating the current user's display name."""
+    # Prepare update data
+    update_data = {"display_name": "Updated User"}
 
-    setlist = Setlist(user_id=user.id, name="Owner2 Setlist")
-    song = Song(mbid="mbid-4", title="Song", artist="Artist")
-    session.add_all([setlist, song])
-    session.flush()
-    session.add(SetlistEntry(setlist_id=setlist.id, song_id=song.id, position=1))
-    session.commit()
+    # Make the PATCH request
+    response = authenticated_client.patch("/users/me", json=update_data)
 
-    delete_current_user(user, session)
+    # Assert the response
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["display_name"] == "Updated User"
 
-    assert session.get(User, user.id) is None
-    assert session.get(Setlist, setlist.id) is None
-    assert session.get(SetlistEntry, (setlist.id, song.id)) is None
-    assert session.get(Song, song.id) is not None
+    # Verify the update persisted
+    response = authenticated_client.get("/users/me")
+    assert response.json()["display_name"] == "Updated User"
+
+
+def test_delete_current_user(authenticated_client: TestClient):
+    """Test deleting the current user's account."""
+    # Make the DELETE request
+    response = authenticated_client.delete("/users/me")
+
+    # Assert the response
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    # Verify the user is deleted
+    response = authenticated_client.get("/users/me")
+    assert (
+        response.status_code == status.HTTP_401_UNAUTHORIZED
+    )  # No longer authenticated

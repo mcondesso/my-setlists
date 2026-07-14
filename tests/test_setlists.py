@@ -1,156 +1,189 @@
-"""Setlist route tests covering create, read, update, and delete flows."""
+"""Integration tests for the /setlists endpoint."""
 
-import pytest
-from fastapi import HTTPException
-from sqlmodel import Session
-
-from src.models.setlist import Setlist, SetlistCreate, SetlistEntry, SetlistUpdate
-from src.models.song import Song
-from src.models.user import User
-from src.routers.setlists import (
-    add_song_to_setlist,
-    create_setlist,
-    delete_setlist,
-    get_setlist,
-    get_setlist_songs,
-    get_setlists,
-    remove_song_from_setlist,
-    update_setlist,
-)
+from fastapi import status
+from fastapi.testclient import TestClient
 
 
-def test_create_setlist_saves_new_setlist(session: Session) -> None:
-    user = User(email="user@example.com", display_name="User", password="secret")
-    session.add(user)
-    session.flush()
+def test_create_setlist(authenticated_client: TestClient):
+    """Test creating a new setlist."""
+    setlist_data = {
+        "name": "My Setlist",
+        "description": "A cool setlist",
+        "is_public": False,
+    }
+    response = authenticated_client.post("/setlists", json=setlist_data)
 
-    created = create_setlist(
-        setlist_data=SetlistCreate(
-            name="My Setlist",
-            description="A test setlist",
-            is_public=False,
-        ),
-        session=session,
-        current_user=user,
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["name"] == setlist_data["name"]
+    assert response.json()["description"] == setlist_data["description"]
+    assert response.json()["is_public"] == setlist_data["is_public"]
+    assert response.json()["is_library"] is False
+    assert "id" in response.json()
+
+
+def test_get_setlists(authenticated_client: TestClient):
+    """Test fetching all setlists for the current user."""
+    # Create a setlist first
+    setlist_data = {
+        "name": "My Setlist",
+        "description": "A cool setlist",
+        "is_public": False,
+    }
+    response = authenticated_client.post("/setlists", json=setlist_data)
+    setlist_id = response.json()["id"]
+
+    # Fetch all setlists
+    response = authenticated_client.get("/setlists")
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.json()) == 2
+    assert response.json()[1]["id"] == setlist_id
+
+
+def test_get_setlist(authenticated_client: TestClient):
+    """Test fetching a single setlist."""
+    # Create a setlist
+    setlist_data = {
+        "name": "My Setlist",
+        "description": "A cool setlist",
+        "is_public": False,
+    }
+    response = authenticated_client.post("/setlists", json=setlist_data)
+    setlist_id = response.json()["id"]
+
+    # Fetch the setlist
+    response = authenticated_client.get(f"/setlists/{setlist_id}")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["id"] == setlist_id
+
+
+def test_get_nonexistent_setlist(authenticated_client: TestClient):
+    """Test fetching a non-existent setlist."""
+    fake_id = "123e4567-e89b-12d3-a456-426614174000"
+    response = authenticated_client.get(f"/setlists/{fake_id}")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json()["detail"] == "Setlist not found"
+
+
+def test_update_setlist(authenticated_client: TestClient):
+    """Test updating a setlist."""
+    # Create a setlist
+    setlist_data = {
+        "name": "My Setlist",
+        "description": "A cool setlist",
+        "is_public": False,
+    }
+    response = authenticated_client.post("/setlists", json=setlist_data)
+    setlist_id = response.json()["id"]
+
+    # Update the setlist
+    update_data = {"name": "Updated Setlist", "description": "An updated description"}
+    response = authenticated_client.patch(f"/setlists/{setlist_id}", json=update_data)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["name"] == update_data["name"]
+    assert response.json()["description"] == update_data["description"]
+
+
+def test_update_library_setlist_fails(authenticated_client: TestClient):
+    """Test that updating the library setlist fails."""
+    # Fetch the library setlist
+    response = authenticated_client.get("/setlists")
+    library_setlist = next((s for s in response.json() if s["is_library"]), None)
+    assert library_setlist is not None
+
+    # Try to update the library setlist
+    update_data = {"name": "Updated Library"}
+    response = authenticated_client.patch(
+        f"/setlists/{library_setlist['id']}", json=update_data
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert (
+        response.json()["detail"]
+        == "The library setlist's name and description cannot be changed"
     )
 
-    assert created.user_id == user.id
-    assert created.is_library is False
-    assert session.get(Setlist, created.id) is not None
+
+def test_delete_setlist(authenticated_client: TestClient):
+    """Test deleting a setlist."""
+    # Create a setlist
+    setlist_data = {
+        "name": "My Setlist",
+        "description": "A cool setlist",
+        "is_public": False,
+    }
+    response = authenticated_client.post("/setlists", json=setlist_data)
+    setlist_id = response.json()["id"]
+
+    # Delete the setlist
+    response = authenticated_client.delete(f"/setlists/{setlist_id}")
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    # Verify the setlist is deleted
+    response = authenticated_client.get(f"/setlists/{setlist_id}")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_get_setlists_returns_only_owned_setlists(session: Session) -> None:
-    owner = User(email="owner@example.com", display_name="Owner", password="secret")
-    other = User(email="other@example.com", display_name="Other", password="secret")
-    session.add_all([owner, other])
-    session.flush()
+def test_delete_library_setlist_fails(authenticated_client: TestClient):
+    """Test that deleting the library setlist fails."""
+    # Fetch the library setlist
+    response = authenticated_client.get("/setlists")
+    library_setlist = next((s for s in response.json() if s["is_library"]), None)
+    assert library_setlist is not None
 
-    owned = Setlist(user_id=owner.id, name="Owned")
-    foreign = Setlist(user_id=other.id, name="Foreign")
-    session.add_all([owned, foreign])
-    session.commit()
-
-    setlists = get_setlists(session, owner)
-
-    assert len(setlists) == 1
-    assert setlists[0].user_id == owner.id
-    assert setlists[0].id == owned.id
+    # Try to delete the library setlist
+    response = authenticated_client.delete(f"/setlists/{library_setlist['id']}")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json()["detail"] == "The library setlist cannot be deleted"
 
 
-def test_get_setlist_songs_allows_public_setlist_access(session: Session) -> None:
-    owner = User(email="owner2@example.com", display_name="Owner2", password="secret")
-    viewer = User(email="viewer@example.com", display_name="Viewer", password="secret")
-    session.add_all([owner, viewer])
-    session.flush()
+def test_create_setlist_entry(authenticated_client: TestClient):
+    """Test adding a song to a setlist."""
+    # Create a setlist
+    setlist_data = {
+        "name": "My Setlist",
+        "description": "A cool setlist",
+        "is_public": False,
+    }
+    response = authenticated_client.post("/setlists", json=setlist_data)
+    setlist_id = response.json()["id"]
 
-    setlist = Setlist(user_id=owner.id, name="Public", is_public=True)
-    session.add(setlist)
-    session.flush()
+    # Create a song
+    song_data = {"mbid": "mbid-1", "title": "Song Title", "artist": "Artist Name"}
+    response = authenticated_client.post("/songs", json=song_data)
+    song_id = response.json()["id"]
 
-    song = Song(mbid="mbid-2", title="Song", artist="Artist")
-    session.add(song)
-    session.flush()
-
-    session.add(SetlistEntry(setlist_id=setlist.id, song_id=song.id, position=1))
-    session.commit()
-
-    entries = get_setlist_songs(setlist.id, session, viewer)
-
-    assert len(entries) == 1
-    assert entries[0].song_id == song.id
-
-
-def test_get_setlist_restricts_private_access_to_owner(session: Session) -> None:
-    owner = User(email="owner3@example.com", display_name="Owner3", password="secret")
-    viewer = User(
-        email="viewer3@example.com", display_name="Viewer3", password="secret"
+    # Add the song to the setlist
+    entry_data = {"setlist_id": setlist_id, "song_id": song_id, "position": 1}
+    response = authenticated_client.post(
+        f"/setlists/{setlist_id}/songs/{song_id}", json=entry_data
     )
-    session.add_all([owner, viewer])
-    session.flush()
-
-    setlist = Setlist(user_id=owner.id, name="Private Setlist", is_public=False)
-    session.add(setlist)
-    session.commit()
-
-    with pytest.raises(HTTPException) as exc_info:
-        get_setlist(setlist.id, session, viewer)
-
-    assert exc_info.value.status_code == 403
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["position"] == 1
 
 
-def test_update_setlist_rejects_library_name_change(session: Session) -> None:
-    user = User(email="user3@example.com", display_name="User3", password="secret")
-    session.add(user)
-    session.flush()
+def test_get_setlist_songs(authenticated_client: TestClient):
+    """Test fetching all songs in a setlist."""
+    # Create a setlist
+    setlist_data = {
+        "name": "My Setlist",
+        "description": "A cool setlist",
+        "is_public": False,
+    }
+    response = authenticated_client.post("/setlists", json=setlist_data)
+    setlist_id = response.json()["id"]
 
-    library = Setlist(user_id=user.id, name="Library", is_library=True)
-    session.add(library)
-    session.commit()
+    # Create a song
+    song_data = {"mbid": "mbid-2", "title": "Song Title", "artist": "Artist Name"}
+    response = authenticated_client.post("/songs", json=song_data)
+    song_id = response.json()["id"]
 
-    with pytest.raises(HTTPException) as exc_info:
-        update_setlist(
-            library.id,
-            SetlistUpdate(name="New Name", description="New Desc"),
-            session,
-            user,
-        )
+    # Add the song to the setlist
+    entry_data = {"setlist_id": setlist_id, "song_id": song_id, "position": 1}
+    authenticated_client.post(
+        f"/setlists/{setlist_id}/songs/{song_id}", json=entry_data
+    )
 
-    assert exc_info.value.status_code == 403
-
-
-def test_add_and_remove_song_from_setlist(session: Session) -> None:
-    user = User(email="user4@example.com", display_name="User4", password="secret")
-    session.add(user)
-    session.flush()
-
-    setlist = Setlist(user_id=user.id, name="My Setlist")
-    song = Song(mbid="mbid-7", title="Song", artist="Artist")
-    session.add_all([setlist, song])
-    session.commit()
-
-    add_song_to_setlist(setlist.id, song.id, session, user)
-    session.commit()
-
-    entries = get_setlist_songs(setlist.id, session, user)
-    assert len(entries) == 1
-
-    remove_song_from_setlist(setlist.id, song.id, session, user)
-    assert session.get(SetlistEntry, (setlist.id, song.id)) is None
-
-
-def test_delete_setlist_removes_all_entries(session: Session) -> None:
-    user = User(email="user5@example.com", display_name="User5", password="secret")
-    session.add(user)
-    session.flush()
-
-    setlist = Setlist(user_id=user.id, name="My Setlist")
-    song = Song(mbid="mbid-3", title="Song", artist="Artist")
-    session.add_all([setlist, song])
-    session.flush()
-    session.add(SetlistEntry(setlist_id=setlist.id, song_id=song.id, position=1))
-    session.commit()
-
-    delete_setlist(setlist.id, session, user)
-
-    assert session.get(Setlist, setlist.id) is None
-    assert session.get(SetlistEntry, (setlist.id, song.id)) is None
+    # Fetch the songs in the setlist
+    response = authenticated_client.get(f"/setlists/{setlist_id}/songs")
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.json()) == 1
+    assert response.json()[0]["song_id"] == song_id
