@@ -1,8 +1,21 @@
 """Shared pytest fixtures for database-backed route tests."""
 
+import os
+
 import pytest
 from sqlmodel import SQLModel, Session, create_engine
 from sqlmodel.pool import StaticPool
+
+import dotenv
+
+dotenv.load_dotenv()
+
+
+@pytest.fixture
+def base_url():
+    """Return the base url to communicate with the app API"""
+    app_port = os.getenv("APP_PORT")
+    return f"http://localhost:{app_port}"
 
 
 @pytest.fixture()
