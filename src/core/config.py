@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     SECRET_KEY: str
+    UVICORN_RELOAD: bool
 
     @property
     def DATABASE_URL(self) -> str:
