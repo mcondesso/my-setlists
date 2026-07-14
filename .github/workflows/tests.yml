@@ -26,6 +26,7 @@ jobs:
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
       UVICORN_RELOAD: ${{ vars.UVICORN_RELOAD }}
       APP_PORT: ${{ vars.APP_PORT }}
+      ENVIRONMENT: ${{ vars.ENVIRONMENT }}
 
     steps:
       - name: Check out repository
