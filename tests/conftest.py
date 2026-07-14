@@ -1,31 +1,62 @@
 """Shared pytest fixtures for database-backed route tests."""
 
-import os
-
 import pytest
+from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, create_engine
 from sqlmodel.pool import StaticPool
 
-import dotenv
+from src.database import get_session  # noqa: E402
+import src.app  # noqa: E402
+from src.core.config import settings
 
-dotenv.load_dotenv()
+
+@pytest.fixture(scope="session")
+def test_engine():
+    """
+    Create an in-memory SQLite engine shared across the entire test session.
+
+    StaticPool ensures the same in-memory database is reused across all
+    connections, which is required for SQLite in-memory databases to persist
+    between requests within a single test.
+    """
+    engine = create_engine(
+        settings.database_url,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        echo=False,
+    )
+    SQLModel.metadata.create_all(engine)
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def reset_db(test_engine):
+    """
+    Reset the database before each test by dropping and recreating all tables.
+
+    Autouse ensures this runs automatically for every test without
+    needing to be explicitly requested as a parameter.
+    """
+    SQLModel.metadata.drop_all(test_engine)
+    SQLModel.metadata.create_all(test_engine)
+    yield
 
 
 @pytest.fixture
-def base_url():
-    """Return the base url to communicate with the app API"""
-    app_port = os.getenv("APP_PORT")
-    return f"http://localhost:{app_port}"
+def client(test_engine):
+    """
+    Provide a TestClient with the database dependency overridden.
 
+    Each test gets a fresh database state via the reset_db fixture,
+    ensuring full isolation between tests.
+    """
 
-@pytest.fixture()
-def session() -> Session:
-    """Provide an isolated in-memory database session for each test."""
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
+    def override_get_session():
+        with Session(test_engine) as session:
+            yield session
+
+    src.app.app.dependency_overrides[get_session] = override_get_session
+    with TestClient(src.app.app) as test_client:
+        yield test_client
+    src.app.app.dependency_overrides.clear()

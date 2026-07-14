@@ -1,8 +1,6 @@
-import requests
-
-def test_health_check(base_url):
+def test_health_check(client):
     """Check if webserver is running"""
-    response = requests.get(f"{base_url}/health")
+    response = client.get("/health")
 
     # Assert
     assert response.status_code == 200
