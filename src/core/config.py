@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     SECRET_KEY: str
     UVICORN_RELOAD: bool
+    APP_PORT: int
 
     @property
     def DATABASE_URL(self) -> str:
