@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env")
 
+    ENVIRONMENT: Literal["development", "test", "production"] = "development"
     POSTGRES_HOSTNAME: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
@@ -21,8 +22,12 @@ class Settings(BaseSettings):
     APP_PORT: int
 
     @property
-    def DATABASE_URL(self) -> str:
-        """Build the SQLAlchemy database URL from configured environment values."""
+    def database_url(self) -> str:
+        """Return the database URL, preferring explicit DATABASE_URL if provided."""
+        if self.ENVIRONMENT == "test":
+            # Use in-memory sqlite db for tests
+            return "sqlite:///:memory:"
+        # Build from Postgres environment variables
         return (
             f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOSTNAME}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
