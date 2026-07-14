@@ -6,7 +6,7 @@ from src.core.config import settings
 
 engine = create_engine(
     settings.database_url,
-    echo=settings.ENVIRONMENT in {"development", "test"},
+    echo=False,
 )
 
 
