@@ -1,9 +1,13 @@
-"""Database utilities for session management and schema initialization."""
+"""Database engine setup, session management and schema initialization."""
 
 from sqlmodel import create_engine, Session, SQLModel
+
 from src.core.config import settings
 
-engine = create_engine(settings.DATABASE_URL, echo=True)
+engine = create_engine(
+    settings.database_url,
+    echo=False,
+)
 
 
 def init_db() -> None:
