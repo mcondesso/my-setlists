@@ -1,10 +1,14 @@
 """Application configuration loaded from environment and .env files."""
 
-from pydantic_settings import BaseSettings
+from typing import Literal
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Strongly typed settings for database and application configuration."""
+
+    model_config = SettingsConfigDict(env_file=".env")
 
     POSTGRES_HOSTNAME: str
     POSTGRES_USER: str
@@ -23,11 +27,6 @@ class Settings(BaseSettings):
             f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOSTNAME}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
-
-    class Config:
-        """Configuration for Pydantic settings behavior."""
-
-        env_file = ".env"
 
 
 # The params are read from .env at runtime

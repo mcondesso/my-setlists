@@ -6,8 +6,8 @@ from src.core.config import settings
 engine = create_engine(settings.DATABASE_URL, echo=True)
 
 
-def init_db():
-    """Create all database tables defined on SQLModel metadata."""
+def init_db() -> None:
+    """Create all database tables defined in SQLModel metadata."""
     SQLModel.metadata.create_all(engine)
 
 
