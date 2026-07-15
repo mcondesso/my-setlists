@@ -27,6 +27,7 @@ jobs:
       UVICORN_RELOAD: ${{ vars.UVICORN_RELOAD }}
       APP_PORT: ${{ vars.APP_PORT }}
       ENVIRONMENT: ${{ vars.ENVIRONMENT }}
+      DISCOGS_API_TOKEN: ${{ vars.DISCOGS_API_TOKEN }}
 
     steps:
       - name: Check out repository
