@@ -4,10 +4,12 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from pydantic import EmailStr
+from pydantic import ConfigDict, EmailStr
 from sqlalchemy import Column, DateTime, func
 from sqlalchemy.orm import Mapped
 from sqlmodel import Field, Relationship, SQLModel
+
+from src.models.setlist import SetlistRead
 
 if TYPE_CHECKING:
     from src.models.setlist import Setlist
@@ -57,3 +59,12 @@ class UserUpdate(SQLModel):
     """Request schema for updating a user's display name."""
 
     display_name: str = Field(max_length=255, min_length=1)
+
+
+class UserReadWithSetlists(UserBase):
+    """Response schema for a user including all its setlists."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    setlists: list[SetlistRead] = []
