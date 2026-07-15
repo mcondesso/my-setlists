@@ -1,5 +1,6 @@
 """Shared pytest fixtures for database-backed route tests."""
 
+import os
 import sqlite3
 
 import pytest
@@ -8,6 +9,9 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
+
+# Force this env variable to "test" so that the SQLite DB is used
+os.environ["ENVIRONMENT"] = "test"
 
 import src.app
 from src.core.config import settings
