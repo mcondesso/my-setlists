@@ -4,7 +4,7 @@ from sqlmodel import Session
 
 from src.models.setlist import Setlist, SetlistEntry
 from src.models.song import Song
-from src.models.user import User
+from src.models.user import User, UserUpdate
 from src.routers.users import (
     delete_current_user,
     read_current_user,
@@ -29,9 +29,7 @@ def test_update_current_user_changes_display_name(session: Session) -> None:
     session.commit()
 
     updated = update_current_user(
-        user_data=type("U", (), {"display_name": "Updated"})(),
-        current_user=user,
-        session=session,
+        user_data=UserUpdate(display_name="Updated"), current_user=user, session=session
     )
 
     assert updated.display_name == "Updated"
@@ -44,15 +42,20 @@ def test_delete_current_user_cascades_setlists_and_entries(session: Session) -> 
     session.flush()
 
     setlist = Setlist(user_id=user.id, name="Owner2 Setlist")
-    song = Song(mbid="mbid-4", title="Song", artist="Artist")
+    song = Song(title="Song", artist="Artist")
     session.add_all([setlist, song])
     session.flush()
     session.add(SetlistEntry(setlist_id=setlist.id, song_id=song.id, position=1))
     session.commit()
 
+    # Save IDs before deletion — objects become invalid after cascade
+    user_id = user.id
+    setlist_id = setlist.id
+    song_id = song.id
+
     delete_current_user(user, session)
 
-    assert session.get(User, user.id) is None
-    assert session.get(Setlist, setlist.id) is None
-    assert session.get(SetlistEntry, (setlist.id, song.id)) is None
-    assert session.get(Song, song.id) is not None
+    assert session.get(User, user_id) is None
+    assert session.get(Setlist, setlist_id) is None
+    assert session.get(SetlistEntry, (setlist_id, song_id)) is None
+    assert session.get(Song, song_id) is not None

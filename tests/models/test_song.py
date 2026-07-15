@@ -27,7 +27,6 @@ def test_create_song_only_adds_to_explicitly_requested_setlists(
 
     created = create_song(
         song_data=SongCreate(
-            mbid="mbid-1",
             title="Song",
             artist="Artist",
             setlist_ids=[],
@@ -41,27 +40,26 @@ def test_create_song_only_adds_to_explicitly_requested_setlists(
 
 
 def test_get_songs_returns_all_songs(session: Session) -> None:
-    song_a = Song(mbid="mbid-a", title="A", artist="Artist")
-    song_b = Song(mbid="mbid-b", title="B", artist="Artist")
+    song_a = Song(title="A", artist="Artist")
+    song_b = Song(title="B", artist="Artist")
     session.add_all([song_a, song_b])
     session.commit()
 
     songs = get_songs(session)
 
     assert len(songs) == 2
-    assert {song.mbid for song in songs} == {"mbid-a", "mbid-b"}
+    assert {song.title for song in songs} == {"A", "B"}
 
 
 def test_get_song_returns_song_by_id(session: Session) -> None:
     user = User(email="viewer3@example.com", display_name="Viewer3", password="secret")
-    song = Song(mbid="mbid-8", title="Song", artist="Artist")
+    song = Song(title="Song", artist="Artist")
     session.add_all([user, song])
     session.commit()
 
     result = get_song(song.id, session, user)
 
     assert result.id == song.id
-    assert result.mbid == "mbid-8"
 
 
 def test_update_song_adds_and_removes_setlist_entries(session: Session) -> None:
@@ -74,7 +72,7 @@ def test_update_song_adds_and_removes_setlist_entries(session: Session) -> None:
     session.add_all([setlist_a, setlist_b])
     session.flush()
 
-    song = Song(mbid="mbid-9", title="Song", artist="Artist")
+    song = Song(title="Song", artist="Artist")
     session.add(song)
     session.flush()
     session.add(SetlistEntry(setlist_id=setlist_a.id, song_id=song.id, position=1))
@@ -106,7 +104,7 @@ def test_delete_song_deletes_globally_when_no_remaining_entries(
     session.add(setlist)
     session.flush()
 
-    song = Song(mbid="mbid-5", title="Song", artist="Artist")
+    song = Song(title="Song", artist="Artist")
     session.add(song)
     session.flush()
 
@@ -130,7 +128,7 @@ def test_delete_song_keeps_song_if_other_user_has_entry(session: Session) -> Non
     session.add_all([s1, s2])
     session.flush()
 
-    song = Song(mbid="mbid-6", title="Song", artist="Artist")
+    song = Song(title="Song", artist="Artist")
     session.add(song)
     session.flush()
 
