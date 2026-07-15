@@ -1,5 +1,6 @@
 """Song route tests covering save, fetch, update, and deletion semantics."""
 
+from fastapi import BackgroundTasks
 from sqlmodel import Session, select
 
 from src.models.setlist import Setlist, SetlistEntry
@@ -31,6 +32,7 @@ def test_create_song_only_adds_to_explicitly_requested_setlists(
             artist="Artist",
             setlist_ids=[],
         ),
+        background_tasks=BackgroundTasks(),
         session=session,
         current_user=user,
     )

@@ -32,3 +32,11 @@ class SongLinkRead(SQLModel):
     platform: str
     external_id: str
     url: str
+
+
+class SongLinkReadNested(SQLModel):
+    """Response schema for a song link nested inside a song response."""
+
+    platform: str
+    external_id: str
+    url: str
