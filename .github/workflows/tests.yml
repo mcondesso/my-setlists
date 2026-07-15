@@ -24,6 +24,8 @@ jobs:
       POSTGRES_PORT: ${{ vars.POSTGRES_PORT }}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.ACCESS_TOKEN_EXPIRE_MINUTES }}
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      UVICORN_RELOAD: ${{ vars.UVICORN_RELOAD }}
+      APP_PORT: ${{ vars.APP_PORT }}
 
     steps:
       - name: Check out repository
