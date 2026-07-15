@@ -3,17 +3,18 @@
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import Mapped
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from src.models.setlist import SetlistEntry
+    from src.models.song_link import SongLink
 
 
 class SongBase(SQLModel):
     """Shared song fields used by create and read models."""
 
-    mbid: str = Field(min_length=1, max_length=36)
     title: str = Field(min_length=1, max_length=255)
     artist: str = Field(min_length=1, max_length=255)
     duration_ms: int | None = Field(default=None)
@@ -25,19 +26,31 @@ class Song(SongBase, table=True):
     """Database model representing a song in the global songs table."""
 
     __tablename__ = "songs"
+    __table_args__ = (UniqueConstraint("title", "artist"),)
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
 
     # Relationships
+    links: Mapped[list["SongLink"]] = Relationship(
+        back_populates="song",
+        sa_relationship_kwargs={"passive_deletes": True},
+    )
     entries: Mapped[list["SetlistEntry"]] = Relationship(
         back_populates="song",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+        sa_relationship_kwargs={"passive_deletes": True},
     )
 
 
 class SongCreate(SongBase):
-    """Request schema for saving a new song."""
+    """
+    Request schema for saving a new song.
 
+    The song is always added to the user's library, and optionally to
+    any additional setlists specified in setlist_ids. discogs_id is
+    optional but recommended for linking back to the Discogs catalog.
+    """
+
+    discogs_id: str | None = Field(default=None, max_length=255)
     setlist_ids: list[UUID] = Field(default_factory=list)
 
 

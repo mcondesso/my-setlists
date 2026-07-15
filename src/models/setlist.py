@@ -27,17 +27,16 @@ class Setlist(SetlistBase, table=True):
     __tablename__ = "setlists"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    user_id: UUID = Field(foreign_key="users.id")
+    user_id: UUID = Field(foreign_key="users.id", ondelete="CASCADE")
     is_library: bool = Field(default=False)
     created_at: datetime = Field(
         default=None,
         sa_column=Column(DateTime(), server_default=func.now()),
     )
 
-    # Relationships
     entries: Mapped[list["SetlistEntry"]] = Relationship(
         back_populates="setlist",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+        sa_relationship_kwargs={"passive_deletes": True},
     )
     user: Mapped[Optional["User"]] = Relationship(back_populates="setlists")
 
@@ -72,15 +71,14 @@ class SetlistEntry(SQLModel, table=True):
 
     __tablename__ = "setlist_entries"
 
-    setlist_id: UUID = Field(foreign_key="setlists.id", primary_key=True)
-    song_id: UUID = Field(foreign_key="songs.id", primary_key=True)
+    setlist_id: UUID = Field(foreign_key="setlists.id", primary_key=True, ondelete="CASCADE")
+    song_id: UUID = Field(foreign_key="songs.id", primary_key=True, ondelete="CASCADE")
     position: int
     added_at: datetime = Field(
         default=None,
         sa_column=Column(DateTime(), server_default=func.now()),
     )
 
-    # Relationships
     setlist: Mapped[Optional["Setlist"]] = Relationship(back_populates="entries")
     song: Mapped[Optional["Song"]] = Relationship(back_populates="entries")
 

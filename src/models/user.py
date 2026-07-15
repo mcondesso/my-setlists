@@ -36,7 +36,7 @@ class User(UserBase, table=True):
     # Relationships
     setlists: Mapped[list["Setlist"]] = Relationship(
         back_populates="user",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+        sa_relationship_kwargs={"passive_deletes": True},
     )
 
 
