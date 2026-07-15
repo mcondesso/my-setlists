@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from src.database import init_db
-from src.routers import auth, songs, users, setlists
+from src.routers import auth, setlists, songs, users
 
 
 @asynccontextmanager

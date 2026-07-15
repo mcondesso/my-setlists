@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from pydantic import EmailStr
-from sqlalchemy import func, Column, DateTime
+from sqlalchemy import Column, DateTime, func
 from sqlalchemy.orm import Mapped
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from src.models.setlist import Setlist

@@ -2,13 +2,12 @@
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import SQLModel, Session, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
-from src.database import get_session
 import src.app
 from src.core.config import settings
-
+from src.database import get_session
 
 AUTH_LOGIN_ENDPOINT = "/auth/login"
 AUTH_REGISTER_ENDPOINT = "/auth/register"

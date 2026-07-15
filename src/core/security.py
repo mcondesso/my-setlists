@@ -1,6 +1,6 @@
 """Password hashing and JWT creation/verification utilities."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import jwt
@@ -29,9 +29,7 @@ def create_token(user_id: UUID) -> str:
 
     The token expires after the number of minutes defined in settings.
     """
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    )
+    expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         "sub": str(user_id),
         "exp": expire,
@@ -54,5 +52,5 @@ def decode_token(token: str) -> UUID:
 
     try:
         return UUID(user_id_str)
-    except ValueError:
-        raise jwt.InvalidTokenError(f"Invalid UUID in 'sub' claim: {user_id_str}")
+    except ValueError as error:
+        raise jwt.InvalidTokenError(f"Invalid UUID in 'sub' claim: {user_id_str}") from error
