@@ -10,6 +10,11 @@ import src.app
 from src.core.config import settings
 
 
+AUTH_LOGIN_ENDPOINT = "/auth/login"
+AUTH_REGISTER_ENDPOINT = "/auth/register"
+USERS_ME_ENDPOINT = "/users/me"
+
+
 @pytest.fixture(scope="session")
 def test_engine():
     """
@@ -72,3 +77,30 @@ def client(test_engine):
     with TestClient(src.app.app) as test_client:
         yield test_client
     src.app.app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def authenticated_client(client: TestClient) -> TestClient:
+    """
+    Create a user and log them in to get an access token.
+    Returns a TestClient with the token included in the Authorization header.
+    """
+    # Register a user
+    user_data = {
+        "email": "user@example.com",
+        "display_name": "Test User",
+        "password": "securepassword123",
+    }
+    client.post("/auth/register", json=user_data)
+
+    # Log in to get a token
+    login_data = {
+        "username": user_data["email"],
+        "password": user_data["password"],
+    }
+    response = client.post("/auth/login", data=login_data)
+    token = response.json()["access_token"]
+
+    # Add the token to the client's headers
+    client.headers = {"Authorization": f"Bearer {token}"}
+    return client
