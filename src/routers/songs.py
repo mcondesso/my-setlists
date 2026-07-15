@@ -12,10 +12,12 @@ from sqlmodel import Session, select
 
 from src.core.dependencies import get_current_user
 from src.database import get_session
+from src.models.discogs import DiscogsSearchResultRead
 from src.models.setlist import Setlist, SetlistEntry
 from src.models.song import Song, SongCreate, SongRead, SongUpdate
 from src.models.song_link import SongLink
 from src.models.user import User
+from src.services.discogs import search_discogs
 
 router = APIRouter()
 
@@ -85,6 +87,32 @@ def validate_user_setlist_ids(
             )
 
 
+@router.get("/search", response_model=list[DiscogsSearchResultRead])
+def search_songs(
+    q: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> list[DiscogsSearchResultRead]:
+    """
+    Search the Discogs catalog and return the top 5 results.
+
+    Results are shaped to match the fields required by POST /songs,
+    so the client can pick one and save it directly.
+    """
+    results = search_discogs(query=q)
+    return [
+        DiscogsSearchResultRead(
+            discogs_id=r.discogs_id,
+            title=r.title,
+            artist=r.artist,
+            album=r.album,
+            release_year=r.release_year,
+            discogs_url=r.discogs_url,
+            thumbnail=r.thumbnail
+        )
+        for r in results
+    ]
+
+
 @router.get("/", response_model=list[SongRead])
 def get_songs(
     session: Annotated[Session, Depends(get_session)],
@@ -120,6 +148,7 @@ def create_song(
             duration_ms=song_data.duration_ms,
             album=song_data.album,
             release_year=song_data.release_year,
+            thumbnail=song_data.thumbnail
         )
         session.add(song)
         session.flush()
@@ -129,7 +158,7 @@ def create_song(
                 song_id=song.id,
                 platform="discogs",
                 external_id=song_data.discogs_id,
-                url=f"https://www.discogs.com/master/{song_data.discogs_id}",
+                url=song_data.discogs_url,
             )
             session.add(song_link)
 

@@ -19,7 +19,7 @@ class SongLink(SQLModel, table=True):
     song_id: UUID = Field(foreign_key="songs.id", ondelete="CASCADE")
     platform: str = Field(max_length=50)
     external_id: str = Field(max_length=255)
-    url: str = Field(max_length=512)
+    url: str | None = Field(max_length=512)
 
     song: Mapped[Optional["Song"]] = Relationship(back_populates="links")
 

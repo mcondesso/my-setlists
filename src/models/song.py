@@ -20,6 +20,7 @@ class SongBase(SQLModel):
     duration_ms: int | None = Field(default=None)
     album: str | None = Field(default=None, max_length=255)
     release_year: int | None = Field(default=None)
+    thumbnail: str | None = Field(default=None, max_length=512)
 
 
 class Song(SongBase, table=True):
@@ -45,12 +46,12 @@ class SongCreate(SongBase):
     """
     Request schema for saving a new song.
 
-    The song is always added to the user's library, and optionally to
-    any additional setlists specified in setlist_ids. discogs_id is
+    The song is added to setlists specified in setlist_ids. discogs_id is
     optional but recommended for linking back to the Discogs catalog.
     """
 
     discogs_id: str | None = Field(default=None, max_length=255)
+    discogs_url: str | None = Field(default=None, max_length=512)
     setlist_ids: list[UUID] = Field(default_factory=list)
 
 
