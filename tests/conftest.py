@@ -1,7 +1,11 @@
 """Shared pytest fixtures for database-backed route tests."""
 
+import sqlite3
+
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
@@ -12,6 +16,15 @@ from src.database import get_session
 AUTH_LOGIN_ENDPOINT = "/auth/login"
 AUTH_REGISTER_ENDPOINT = "/auth/register"
 USERS_ME_ENDPOINT = "/users/me"
+
+
+@event.listens_for(Engine, "connect")
+def enable_sqlite_fk(dbapi_connection, connection_record):
+    """Enable foreign key constraint enforcement for SQLite connections."""
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 @pytest.fixture(scope="session")
