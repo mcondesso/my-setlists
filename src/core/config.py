@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     UVICORN_RELOAD: bool
     APP_PORT: int
+    DISCOGS_API_TOKEN: str
 
     @property
     def database_url(self) -> str:
