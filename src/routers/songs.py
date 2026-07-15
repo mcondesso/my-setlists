@@ -14,7 +14,7 @@ from src.core.dependencies import get_current_user
 from src.database import get_session
 from src.models.discogs import DiscogsSearchResultRead
 from src.models.setlist import Setlist, SetlistEntry
-from src.models.song import Song, SongCreate, SongRead, SongUpdate
+from src.models.song import Song, SongCreate, SongRead, SongReadWithLinks, SongUpdate
 from src.models.song_link import SongLink
 from src.models.user import User
 from src.services.discogs import search_discogs
@@ -108,16 +108,16 @@ def search_songs(
             album=r.album,
             release_year=r.release_year,
             discogs_url=r.discogs_url,
-            thumbnail=r.thumbnail
+            thumbnail=r.thumbnail,
         )
         for r in results
     ]
 
 
-@router.get("/", response_model=list[SongRead])
+@router.get("/", response_model=list[SongReadWithLinks])
 def get_songs(
     session: Annotated[Session, Depends(get_session)],
-) -> list[Song]:
+) -> list[SongReadWithLinks]:
     """Return all songs in the global songs table."""
     return list(session.exec(select(Song)).all())
 
@@ -150,7 +150,7 @@ def create_song(
             duration_ms=song_data.duration_ms,
             album=song_data.album,
             release_year=song_data.release_year,
-            thumbnail=song_data.thumbnail
+            thumbnail=song_data.thumbnail,
         )
         session.add(song)
         session.flush()
@@ -174,12 +174,12 @@ def create_song(
     return song
 
 
-@router.get("/{song_id}", response_model=SongRead)
+@router.get("/{song_id}", response_model=SongReadWithLinks)
 def get_song(
     song_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
-) -> Song:
+) -> SongReadWithLinks:
     """Return a single song by ID."""
     song = session.get(Song, song_id)
     if not song:

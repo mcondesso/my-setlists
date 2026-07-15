@@ -14,7 +14,9 @@ from src.models.setlist import (
     SetlistCreate,
     SetlistEntry,
     SetlistEntryRead,
+    SetlistEntryReadWithSong,
     SetlistRead,
+    SetlistReadWithEntries,
     SetlistUpdate,
 )
 from src.models.song import Song
@@ -68,11 +70,11 @@ def get_accessible_setlist(
     )
 
 
-@router.get("/", response_model=list[SetlistRead])
+@router.get("/", response_model=list[SetlistReadWithEntries])
 def get_setlists(
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
-) -> list[Setlist]:
+) -> list[SetlistReadWithEntries]:
     """Return all setlists belonging to the current user."""
     statement = select(Setlist).where(Setlist.user_id == current_user.id)
     return list(session.exec(statement).all())
@@ -102,7 +104,7 @@ def create_setlist(
     return setlist
 
 
-@router.get("/{setlist_id}", response_model=SetlistRead)
+@router.get("/{setlist_id}", response_model=SetlistReadWithEntries)
 def get_setlist(
     setlist_id: UUID,
     session: Annotated[Session, Depends(get_session)],
@@ -181,7 +183,7 @@ def delete_setlist(
     session.commit()
 
 
-@router.get("/{setlist_id}/songs", response_model=list[SetlistEntryRead])
+@router.get("/{setlist_id}/songs", response_model=list[SetlistEntryReadWithSong])
 def get_setlist_songs(
     setlist_id: UUID,
     session: Annotated[Session, Depends(get_session)],

@@ -4,12 +4,15 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID, uuid4
 
+from pydantic import ConfigDict
 from sqlalchemy import Column, DateTime, func
 from sqlalchemy.orm import Mapped
 from sqlmodel import Field, Relationship, SQLModel
 
+from src.models.song import SongReadWithLinks
+
 if TYPE_CHECKING:
-    from src.models.song import Song
+    from src.models.song import Song, SongReadWithLinks
     from src.models.user import User
 
 
@@ -90,3 +93,30 @@ class SetlistEntryRead(SQLModel):
     song_id: UUID
     position: int
     added_at: datetime
+
+
+class SetlistEntryReadWithSong(SQLModel):
+    """Response schema for a setlist entry with full song details."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    setlist_id: UUID
+    song_id: UUID
+    position: int
+    added_at: datetime
+    song: SongReadWithLinks
+
+
+class SetlistReadWithEntries(SQLModel):
+    """Response schema for a setlist including all its song entries."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    user_id: UUID
+    name: str
+    description: str | None
+    is_library: bool
+    is_public: bool
+    created_at: datetime
+    entries: list[SetlistEntryReadWithSong] = []
