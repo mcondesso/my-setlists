@@ -6,7 +6,7 @@ Provides CRUD endpoints for song resources using FastAPI and SQLModel.
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import desc
 from sqlmodel import Session, select
 
@@ -18,6 +18,7 @@ from src.models.song import Song, SongCreate, SongRead, SongUpdate
 from src.models.song_link import SongLink
 from src.models.user import User
 from src.services.discogs import search_discogs
+from src.tasks.youtube import fetch_and_save_youtube_link
 
 router = APIRouter()
 
@@ -124,6 +125,7 @@ def get_songs(
 @router.post("/", response_model=SongRead, status_code=status.HTTP_201_CREATED)
 def create_song(
     song_data: SongCreate,
+    background_tasks: BackgroundTasks,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> Song:
@@ -161,6 +163,8 @@ def create_song(
                 url=song_data.discogs_url,
             )
             session.add(song_link)
+
+        background_tasks.add_task(fetch_and_save_youtube_link, song.id)
 
     for setlist_id in setlist_ids:
         add_song_to_setlist(song.id, setlist_id, session)
