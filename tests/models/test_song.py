@@ -36,9 +36,7 @@ def test_create_song_only_adds_to_explicitly_requested_setlists(
         current_user=user,
     )
 
-    entries = session.exec(
-        select(SetlistEntry).where(SetlistEntry.song_id == created.id)
-    ).all()
+    entries = session.exec(select(SetlistEntry).where(SetlistEntry.song_id == created.id)).all()
     assert entries == []
 
 

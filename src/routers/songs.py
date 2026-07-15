@@ -48,9 +48,7 @@ def add_song_to_setlist(
 
 def user_has_song_access(song_id: UUID, user_id: UUID, session: Session) -> bool:
     """Return whether the user currently has the song in one of their setlists."""
-    user_setlist_ids = session.exec(
-        select(Setlist.id).where(Setlist.user_id == user_id)
-    ).all()
+    user_setlist_ids = session.exec(select(Setlist.id).where(Setlist.user_id == user_id)).all()
     if not user_setlist_ids:
         return False
 
@@ -183,16 +181,12 @@ def update_song(
         session.add(song)
 
     if song_data.setlist_ids_to_add:
-        validate_user_setlist_ids(
-            song_data.setlist_ids_to_add, current_user.id, session
-        )
+        validate_user_setlist_ids(song_data.setlist_ids_to_add, current_user.id, session)
         for setlist_id in song_data.setlist_ids_to_add:
             add_song_to_setlist(song.id, setlist_id, session)
 
     if song_data.setlist_ids_to_remove:
-        validate_user_setlist_ids(
-            song_data.setlist_ids_to_remove, current_user.id, session
-        )
+        validate_user_setlist_ids(song_data.setlist_ids_to_remove, current_user.id, session)
         for setlist_id in song_data.setlist_ids_to_remove:
             entry = session.get(SetlistEntry, (setlist_id, song.id))
             if entry:
@@ -240,9 +234,7 @@ def delete_song(
 
     session.flush()
 
-    remaining = session.exec(
-        select(SetlistEntry).where(SetlistEntry.song_id == song_id)
-    ).first()
+    remaining = session.exec(select(SetlistEntry).where(SetlistEntry.song_id == song_id)).first()
 
     if not remaining:
         session.delete(song)

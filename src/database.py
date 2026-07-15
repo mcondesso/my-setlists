@@ -1,6 +1,6 @@
 """Database engine setup, session management and schema initialization."""
 
-from sqlmodel import create_engine, Session, SQLModel
+from sqlmodel import Session, SQLModel, create_engine
 
 from src.core.config import settings
 

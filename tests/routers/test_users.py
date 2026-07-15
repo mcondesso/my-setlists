@@ -43,6 +43,4 @@ def test_delete_current_user(authenticated_client: TestClient):
 
     # Verify the user is deleted
     response = authenticated_client.get(USERS_ME_ENDPOINT)
-    assert (
-        response.status_code == status.HTTP_401_UNAUTHORIZED
-    )  # No longer authenticated
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED  # No longer authenticated

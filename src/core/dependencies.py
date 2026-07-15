@@ -7,10 +7,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session, select
 
-from src.core.security import decode_token
+from src.core.security import decode_token, verify_password
 from src.database import get_session
 from src.models.user import User
-from src.core.security import verify_password
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -52,8 +51,8 @@ def get_current_user(
     )
     try:
         user_id = decode_token(token)
-    except jwt.InvalidTokenError:
-        raise credentials_exception
+    except jwt.InvalidTokenError as error:
+        raise credentials_exception from error
 
     user = session.get(User, user_id)
     if not user:

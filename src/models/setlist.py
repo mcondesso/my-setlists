@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import Column, DateTime, func
 from sqlalchemy.orm import Mapped
-from sqlmodel import Field, SQLModel, Relationship
+from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from src.models.song import Song
