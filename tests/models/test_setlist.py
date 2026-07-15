@@ -67,7 +67,7 @@ def test_get_setlist_songs_allows_public_setlist_access(session: Session) -> Non
     session.add(setlist)
     session.flush()
 
-    song = Song(mbid="mbid-2", title="Song", artist="Artist")
+    song = Song(title="Song", artist="Artist")
     session.add(song)
     session.flush()
 
@@ -122,7 +122,7 @@ def test_add_and_remove_song_from_setlist(session: Session) -> None:
     session.flush()
 
     setlist = Setlist(user_id=user.id, name="My Setlist")
-    song = Song(mbid="mbid-7", title="Song", artist="Artist")
+    song = Song(title="Song", artist="Artist")
     session.add_all([setlist, song])
     session.commit()
 
@@ -142,7 +142,7 @@ def test_delete_setlist_removes_all_entries(session: Session) -> None:
     session.flush()
 
     setlist = Setlist(user_id=user.id, name="My Setlist")
-    song = Song(mbid="mbid-3", title="Song", artist="Artist")
+    song = Song(title="Song", artist="Artist")
     session.add_all([setlist, song])
     session.flush()
     session.add(SetlistEntry(setlist_id=setlist.id, song_id=song.id, position=1))

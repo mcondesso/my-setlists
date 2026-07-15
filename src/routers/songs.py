@@ -14,6 +14,7 @@ from src.core.dependencies import get_current_user
 from src.database import get_session
 from src.models.setlist import Setlist, SetlistEntry
 from src.models.song import Song, SongCreate, SongRead, SongUpdate
+from src.models.song_link import SongLink
 from src.models.user import User
 
 router = APIRouter()
@@ -99,19 +100,21 @@ def create_song(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> Song:
     """
-    Save a song to one or more of the user's setlists.
+    Save a song to the user's library and optionally to other setlists.
 
-    If a song with the same mbid already exists in the global songs table,
-    it is reused rather than duplicated.
+    If a song with the same title and artist already exists in the global
+    songs table, it is reused rather than duplicated. A Discogs link is
+    created alongside the song if one does not already exist.
     """
     setlist_ids = song_data.setlist_ids
     validate_user_setlist_ids(setlist_ids, current_user.id, session)
 
-    song = session.exec(select(Song).where(Song.mbid == song_data.mbid)).first()
+    song = session.exec(
+        select(Song).where(Song.title == song_data.title, Song.artist == song_data.artist)
+    ).first()
 
     if not song:
         song = Song(
-            mbid=song_data.mbid,
             title=song_data.title,
             artist=song_data.artist,
             duration_ms=song_data.duration_ms,
@@ -120,6 +123,15 @@ def create_song(
         )
         session.add(song)
         session.flush()
+
+        if song_data.discogs_id:
+            song_link = SongLink(
+                song_id=song.id,
+                platform="discogs",
+                external_id=song_data.discogs_id,
+                url=f"https://www.discogs.com/master/{song_data.discogs_id}",
+            )
+            session.add(song_link)
 
     for setlist_id in setlist_ids:
         add_song_to_setlist(song.id, setlist_id, session)
