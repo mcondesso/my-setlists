@@ -59,9 +59,10 @@ def get_song_links(
     return list(session.exec(select(SongLink).where(SongLink.song_id == song_id)).all())
 
 
-@router.post("/", response_model=SongLinkReadNested, status_code=status.HTTP_201_CREATED)
+@router.post("/{platform}", response_model=SongLinkReadNested, status_code=status.HTTP_201_CREATED)
 def add_song_link(
     song_id: UUID,
+    platform: Platform,
     link_data: SongLinkCreate,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
@@ -76,21 +77,18 @@ def add_song_link(
     existing = session.exec(
         select(SongLink).where(
             SongLink.song_id == song_id,
-            SongLink.platform == link_data.platform,
+            SongLink.platform == platform,
         )
     ).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"A {link_data.platform.value} link already exists for "
-                "this song — use PUT to update it"
-            ),
+            detail=f"A {platform.value} link already exists for this song — use PUT to update it",
         )
 
     link = SongLink(
         song_id=song_id,
-        platform=link_data.platform,
+        platform=platform,
         external_id=link_data.external_id,
         url=link_data.url,
     )

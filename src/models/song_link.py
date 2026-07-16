@@ -38,9 +38,8 @@ class SongLink(SQLModel, table=True):
 class SongLinkCreate(SQLModel):
     """Request schema for adding a new platform link to a song."""
 
-    platform: Platform
     external_id: str = Field(max_length=255)
-    url: str | None = Field(max_length=512)
+    url: str | None = Field(default=None, max_length=512)
 
 
 class SongLinkUpdate(SQLModel):
