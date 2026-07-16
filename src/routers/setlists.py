@@ -116,7 +116,7 @@ def create_setlist(
     session.add(setlist)
     session.commit()
     session.refresh(setlist)
-    return setlist
+    return SetlistRead.from_orm(setlist)
 
 
 @router.get("/{setlist_id}", response_model=SetlistReadWithEntries)
