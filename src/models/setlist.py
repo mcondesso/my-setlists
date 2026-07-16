@@ -56,9 +56,22 @@ class SetlistRead(SetlistBase):
     """Response schema returned for setlist resources."""
 
     id: UUID
-    user_id: UUID
+    owner_display_name: str
     is_library: bool
     created_at: datetime
+
+    @classmethod
+    def from_orm(cls, setlist: "Setlist") -> "SetlistRead":
+        """Build a SetlistRead from a Setlist ORM object."""
+        return cls(
+            id=setlist.id,
+            name=setlist.name,
+            description=setlist.description,
+            is_public=setlist.is_public,
+            is_library=setlist.is_library,
+            created_at=setlist.created_at,
+            owner_display_name=setlist.user.display_name,
+        )
 
 
 class SetlistUpdate(SQLModel):
@@ -113,10 +126,24 @@ class SetlistReadWithEntries(SQLModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    user_id: UUID
+    owner_display_name: str
     name: str
     description: str | None
     is_library: bool
     is_public: bool
     created_at: datetime
     entries: list[SetlistEntryReadWithSong] = []
+
+    @classmethod
+    def from_orm(cls, setlist: "Setlist") -> "SetlistReadWithEntries":
+        """Build a SetlistReadWithEntries from a Setlist ORM object."""
+        return cls(
+            id=setlist.id,
+            name=setlist.name,
+            description=setlist.description,
+            is_public=setlist.is_public,
+            is_library=setlist.is_library,
+            created_at=setlist.created_at,
+            owner_display_name=setlist.user.display_name,
+            entries=setlist.entries,
+        )

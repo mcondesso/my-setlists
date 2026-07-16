@@ -70,14 +70,29 @@ def get_accessible_setlist(
     )
 
 
-@router.get("/", response_model=list[SetlistReadWithEntries])
+@router.get("/", response_model=list[SetlistRead])
 def get_setlists(
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
-) -> list[SetlistReadWithEntries]:
-    """Return all setlists belonging to the current user."""
-    statement = select(Setlist).where(Setlist.user_id == current_user.id)
-    return list(session.exec(statement).all())
+) -> list[Setlist]:
+    """
+    Return all setlists visible to the current user.
+
+    Results include the user's own setlists and all public setlists from
+    other users. The current user's setlists are returned first.
+    """
+    statement = (
+        select(Setlist)
+        .where(
+            (Setlist.user_id == current_user.id) | (Setlist.is_public == True)  # noqa: E712
+        )
+        .order_by(
+            (Setlist.user_id == current_user.id).desc(),
+            Setlist.created_at.desc(),
+        )
+    )
+    setlists = session.exec(statement).all()
+    return [SetlistReadWithEntries.from_orm(s) for s in setlists]
 
 
 @router.post("/", response_model=SetlistRead, status_code=status.HTTP_201_CREATED)
@@ -127,7 +142,7 @@ def get_setlist(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access this setlist",
         )
-    return setlist
+    return SetlistReadWithEntries.from_orm(setlist)
 
 
 @router.patch("/{setlist_id}", response_model=SetlistRead)
