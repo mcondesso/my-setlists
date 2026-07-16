@@ -15,7 +15,7 @@ from src.database import get_session
 from src.models.discogs import DiscogsSearchResultRead
 from src.models.setlist import Setlist, SetlistEntry
 from src.models.song import Song, SongCreate, SongRead, SongReadWithLinks, SongUpdate
-from src.models.song_link import SongLink
+from src.models.song_link import Platform, SongLink
 from src.models.user import User
 from src.services.discogs import search_discogs
 from src.tasks.youtube import fetch_and_save_youtube_link
@@ -158,7 +158,7 @@ def create_song(
         if song_data.discogs_id:
             song_link = SongLink(
                 song_id=song.id,
-                platform="discogs",
+                platform=Platform.DISCOGS,
                 external_id=song_data.discogs_id,
                 url=song_data.discogs_url,
             )
