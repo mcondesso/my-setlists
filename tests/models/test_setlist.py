@@ -34,7 +34,7 @@ def test_create_setlist_saves_new_setlist(session: Session) -> None:
         current_user=user,
     )
 
-    assert created.user_id == user.id
+    assert created.owner_display_name == user.display_name
     assert created.is_library is False
     assert session.get(Setlist, created.id) is not None
 
@@ -53,7 +53,7 @@ def test_get_setlists_returns_only_owned_setlists(session: Session) -> None:
     setlists = get_setlists(session, owner)
 
     assert len(setlists) == 1
-    assert setlists[0].user_id == owner.id
+    assert setlists[0].owner_display_name == owner.display_name
     assert setlists[0].id == owned.id
 
 
