@@ -7,12 +7,12 @@ from sqlmodel import Session
 
 from src.core.dependencies import get_current_user
 from src.database import get_session
-from src.models.user import User, UserRead, UserReadWithSetlists, UserUpdate
+from src.models.user import User, UserRead, UserUpdate
 
 router = APIRouter()
 
 
-@router.get("/me", response_model=UserReadWithSetlists)
+@router.get("/me", response_model=UserRead)
 def read_current_user(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
