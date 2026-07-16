@@ -11,11 +11,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
     ENVIRONMENT: Literal["development", "test", "production"] = "development"
-    POSTGRES_HOSTNAME: str
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
-    POSTGRES_PORT: int = 5432
+    DATABASE_URL: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     SECRET_KEY: str
     UVICORN_RELOAD: bool
@@ -28,11 +24,7 @@ class Settings(BaseSettings):
         if self.ENVIRONMENT == "test":
             # Use in-memory sqlite db for tests
             return "sqlite:///:memory:"
-        # Build from Postgres environment variables
-        return (
-            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
-            f"{self.POSTGRES_HOSTNAME}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-        )
+        return self.DATABASE_URL
 
 
 # The params are read from .env at runtime
