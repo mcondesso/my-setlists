@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 
 from src.database import engine
 from src.models.song import Song
-from src.models.song_link import SongLink
+from src.models.song_link import Platform, SongLink
 from src.services.youtube import find_top_youtube_video
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def fetch_and_save_youtube_link(song_id: UUID) -> None:
             existing = session.exec(
                 select(SongLink).where(
                     SongLink.song_id == song_id,
-                    SongLink.platform == "youtube",
+                    SongLink.platform == Platform.YOUTUBE,
                 )
             ).first()
 
@@ -50,7 +50,7 @@ def fetch_and_save_youtube_link(song_id: UUID) -> None:
 
             link = SongLink(
                 song_id=song_id,
-                platform="youtube",
+                platform=Platform.YOUTUBE,
                 external_id=result["video_id"],
                 url=result["url"],
             )
