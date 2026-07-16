@@ -17,18 +17,14 @@ jobs:
     environment: test
 
     env:
-      POSTGRES_HOSTNAME: ${{ secrets.POSTGRES_HOSTNAME }}
-      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-      POSTGRES_PORT: ${{ vars.POSTGRES_PORT }}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.ACCESS_TOKEN_EXPIRE_MINUTES }}
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
       UVICORN_RELOAD: ${{ vars.UVICORN_RELOAD }}
       APP_PORT: ${{ vars.APP_PORT }}
       ENVIRONMENT: ${{ vars.ENVIRONMENT }}
       DISCOGS_API_TOKEN: ${{ vars.DISCOGS_API_TOKEN }}
-
+      DATABASE_URL: ${{ vars.DATABASE_URL }}
+      
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
