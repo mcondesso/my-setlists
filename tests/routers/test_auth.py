@@ -1,8 +1,10 @@
 """Integration tests for the auth module."""
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
+from src.core.rate_limit import LOGIN_RATE_LIMIT, limiter
 from tests.conftest import AUTH_LOGIN_ENDPOINT, AUTH_REGISTER_ENDPOINT
 
 
@@ -91,3 +93,28 @@ def test_login_failed(client: TestClient):
     # Assert the response
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == "Incorrect email or password"
+
+
+@pytest.fixture
+def rate_limiting_enabled():
+    """Enable the (test-disabled) rate limiter for one test and reset it after."""
+    limiter.enabled = True
+    limiter.reset()
+    try:
+        yield
+    finally:
+        limiter.reset()
+        limiter.enabled = False
+
+
+def test_login_is_rate_limited(client: TestClient, rate_limiting_enabled):
+    """After LOGIN_RATE_LIMIT attempts the endpoint returns 429."""
+    limit = int(LOGIN_RATE_LIMIT.split("/")[0])
+    login_data = {"username": "nobody@example.com", "password": "wrong"}
+
+    statuses = [
+        client.post(AUTH_LOGIN_ENDPOINT, data=login_data).status_code for _ in range(limit + 1)
+    ]
+
+    assert statuses[:limit] == [status.HTTP_401_UNAUTHORIZED] * limit
+    assert statuses[limit] == status.HTTP_429_TOO_MANY_REQUESTS
