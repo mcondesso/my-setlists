@@ -7,7 +7,7 @@ from typing import Annotated
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
@@ -107,9 +107,16 @@ def search_songs(
 @router.get("/", response_model=list[SongReadWithLinks])
 def get_songs(
     session: Annotated[Session, Depends(get_session)],
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[SongReadWithLinks]:
-    """Return all songs in the global songs table."""
-    return list(session.exec(select(Song)).all())
+    """
+    Return songs from the global catalog, ordered by artist then title.
+
+    Paginated via limit (max 200) and offset.
+    """
+    statement = select(Song).order_by(Song.artist, Song.title).offset(offset).limit(limit)
+    return list(session.exec(statement).all())
 
 
 @router.post("/", response_model=SongRead, status_code=status.HTTP_201_CREATED)

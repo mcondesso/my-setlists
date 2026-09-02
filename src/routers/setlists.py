@@ -3,7 +3,7 @@
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
@@ -76,13 +76,14 @@ def get_accessible_setlist(
 def get_setlists(
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[SetlistRead]:
     """
-    Return all setlists visible to the current user.
-
-    Results include the user's own setlists and all public setlists from
-    other users. The current user's setlists are returned first. Song
-    entries are omitted here; fetch a single setlist to get them.
+    Return the setlists visible to the current user, newest first, with the
+    user's own setlists ahead of public ones from others. Paginated via
+    limit (max 200) and offset. Song entries are omitted here; fetch a
+    single setlist to get them.
     """
     statement = (
         select(Setlist)
@@ -95,6 +96,8 @@ def get_setlists(
             (Setlist.user_id == current_user.id).desc(),
             Setlist.created_at.desc(),
         )
+        .offset(offset)
+        .limit(limit)
     )
     setlists = session.exec(statement).all()
     return [SetlistRead.from_setlist(s) for s in setlists]

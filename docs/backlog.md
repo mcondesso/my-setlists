@@ -52,5 +52,5 @@ database that already has the table.
 
 ## Performance
 
-- **No pagination** — `GET /setlists` and `GET /songs` return every matching row. Add
-  `limit` / `offset` (or cursor) params before the catalog grows.
+- **`limit` / `offset` pagination is offset-based** — fine for now; revisit with cursor
+  pagination if result sets get large or rows shift between page fetches.
