@@ -131,7 +131,10 @@ def create_song(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> Song:
     """
-    Save a song to the user's library and optionally to other setlists.
+    Save a song to the global catalog and add it to the setlists named in
+    setlist_ids (all of which must belong to the caller). Pass the caller's
+    library setlist id to add it there; an empty setlist_ids saves the song
+    to the catalog without attaching it to any setlist.
 
     If a song with the same title and artist already exists in the global
     songs table, it is reused rather than duplicated. A Discogs link is
