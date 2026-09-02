@@ -21,6 +21,7 @@ from src.models.setlist import (
 )
 from src.models.song import Song
 from src.models.user import User
+from src.services.setlists import get_next_position
 
 router = APIRouter()
 
@@ -252,18 +253,10 @@ def add_song_to_setlist(
             detail="Song already exists in this setlist",
         )
 
-    statement = (
-        select(SetlistEntry)
-        .where(SetlistEntry.setlist_id == setlist.id)
-        .order_by(desc(SetlistEntry.position))
-    )
-    last_entry = session.exec(statement).first()
-    next_position = (last_entry.position + 1) if last_entry else 1
-
     entry = SetlistEntry(
         setlist_id=setlist.id,
         song_id=song_id,
-        position=next_position,
+        position=get_next_position(setlist.id, session),
     )
     session.add(entry)
     session.commit()
