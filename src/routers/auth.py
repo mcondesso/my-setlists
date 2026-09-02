@@ -2,12 +2,13 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from src.core.dependencies import authenticate_user
+from src.core.rate_limit import LOGIN_RATE_LIMIT, limiter
 from src.core.security import create_token, hash_password
 from src.database import get_session
 from src.models.setlist import Setlist
@@ -68,7 +69,9 @@ def register(
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit(LOGIN_RATE_LIMIT)
 def login(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[Session, Depends(get_session)],
 ) -> Token:
@@ -76,6 +79,7 @@ def login(
     Authenticate a user and return a JWT access token.
 
     Raises HTTP 401 if the email or password is incorrect.
+    Raises HTTP 429 once the per-client attempt limit is exceeded.
     """
     user = authenticate_user(session, form_data.username, form_data.password)
 

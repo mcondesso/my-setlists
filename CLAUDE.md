@@ -91,7 +91,8 @@ OAuth2 password flow with JWT (HS256, `src/core/security.py`). Token `sub` claim
 user's UUID string. `get_current_user` (in `src/core/dependencies.py`) is the auth
 dependency for protected routes. `/auth/login` takes **form data**
 (`OAuth2PasswordRequestForm`); `/auth/register` takes JSON. Passwords hashed with
-`pwdlib` (argon2).
+`pwdlib` (argon2). `/auth/login` is rate-limited via `slowapi` (`src/core/rate_limit.py`),
+which is disabled when `ENVIRONMENT=test`.
 
 ### Routers
 

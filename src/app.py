@@ -3,7 +3,10 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
+from src.core.rate_limit import limiter
 from src.database import init_db
 from src.routers import auth, setlists, song_links, songs, users
 
@@ -16,6 +19,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Setlist API", lifespan=lifespan)
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])

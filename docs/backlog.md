@@ -44,8 +44,11 @@ database that already has the table.
 
 - **No CORS middleware** — a browser frontend on another origin can't call the API. Add
   `CORSMiddleware` with an allowlist once the frontend origin is known.
-- **No rate limiting on `POST /auth/login`** — brute-force is unthrottled. Add per-IP /
-  per-account throttling (e.g. `slowapi`) or enforce it at the reverse proxy.
+- **Login rate limit is per-process and per-IP** — `slowapi` now throttles
+  `POST /auth/login`, but with in-memory storage the limit is per worker/container, and
+  it keys on the client IP so a shared NAT is limited as one client. Move to a shared
+  store (Redis) when running more than one process, and make sure the deployment forwards
+  the real client IP (see `src/core/rate_limit.py`).
 - **`GET /songs/search` surfaces upstream failures as 500** — `httpx` errors from Discogs
   (now including timeouts) propagate uncaught. Map them to `502`/`503`.
 
