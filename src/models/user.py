@@ -31,8 +31,8 @@ class User(UserBase, table=True):
     email: EmailStr = Field(max_length=255, unique=True, index=True)
     display_name: str = Field(max_length=255, min_length=1)
     password: str = Field(max_length=255)
-    created_at: datetime = Field(
-        default=None, sa_column=Column(DateTime(), server_default=func.now())
+    created_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
 
     # Relationships
