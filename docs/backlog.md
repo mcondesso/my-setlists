@@ -52,7 +52,5 @@ database that already has the table.
 
 ## Performance
 
-- **N+1 in `GET /setlists`** — `SetlistRead.from_setlist` lazy-loads `setlist.user` per
-  row. Use `selectinload(Setlist.user)` (or a join) in `get_setlists`.
 - **No pagination** — `GET /setlists` and `GET /songs` return every matching row. Add
   `limit` / `offset` (or cursor) params before the catalog grows.
