@@ -32,9 +32,9 @@ class Setlist(SetlistBase, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", ondelete="CASCADE")
     is_library: bool = Field(default=False)
-    created_at: datetime = Field(
+    created_at: datetime | None = Field(
         default=None,
-        sa_column=Column(DateTime(), server_default=func.now()),
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
 
     entries: Mapped[list["SetlistEntry"]] = Relationship(
@@ -90,9 +90,9 @@ class SetlistEntry(SQLModel, table=True):
     setlist_id: UUID = Field(foreign_key="setlists.id", primary_key=True, ondelete="CASCADE")
     song_id: UUID = Field(foreign_key="songs.id", primary_key=True, ondelete="CASCADE")
     position: int
-    added_at: datetime = Field(
+    added_at: datetime | None = Field(
         default=None,
-        sa_column=Column(DateTime(), server_default=func.now()),
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
 
     setlist: Mapped[Optional["Setlist"]] = Relationship(back_populates="entries")
