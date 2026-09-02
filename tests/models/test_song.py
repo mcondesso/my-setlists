@@ -53,6 +53,17 @@ def test_get_songs_returns_all_songs(session: Session) -> None:
     assert {song.title for song in songs} == {"A", "B"}
 
 
+def test_get_songs_paginates(session: Session) -> None:
+    session.add_all(Song(title=f"Song {i}", artist="Artist") for i in range(5))
+    session.commit()
+
+    first_page = get_songs(session, limit=2, offset=0)
+    second_page = get_songs(session, limit=2, offset=2)
+
+    assert [s.title for s in first_page] == ["Song 0", "Song 1"]
+    assert [s.title for s in second_page] == ["Song 2", "Song 3"]
+
+
 def test_get_song_returns_song_by_id(session: Session) -> None:
     user = User(email="viewer3@example.com", display_name="Viewer3", password="secret")
     song = Song(title="Song", artist="Artist")
