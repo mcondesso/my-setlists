@@ -61,7 +61,7 @@ class SetlistRead(SetlistBase):
     created_at: datetime
 
     @classmethod
-    def from_orm(cls, setlist: "Setlist") -> "SetlistRead":
+    def from_setlist(cls, setlist: "Setlist") -> "SetlistRead":
         """Build a SetlistRead from a Setlist ORM object."""
         return cls(
             id=setlist.id,
@@ -135,7 +135,7 @@ class SetlistReadWithEntries(SQLModel):
     entries: list[SetlistEntryReadWithSong] = []
 
     @classmethod
-    def from_orm(cls, setlist: "Setlist") -> "SetlistReadWithEntries":
+    def from_setlist(cls, setlist: "Setlist") -> "SetlistReadWithEntries":
         """Build a SetlistReadWithEntries from a Setlist ORM object."""
         return cls(
             id=setlist.id,
