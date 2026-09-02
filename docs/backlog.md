@@ -3,17 +3,6 @@
 Known issues and follow-ups surfaced during the September 2026 code review.
 Ordered roughly by priority.
 
-## Test infrastructure
-
-### No router / `TestClient` tests
-All current tests call router functions directly with a `Session`, so FastAPI's
-`response_model` validation and serialization are never exercised. The two serialization
-bugs fixed in this branch (null `SongLink.url`, reversed setlist order) were invisible to
-the suite for that reason.
-
-- Add `TestClient` tests over the `songs`, `song_links`, and `setlists` routers covering
-  the happy path and the response shape.
-
 ## Schema management
 
 ### No migration tool
