@@ -4,6 +4,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID, uuid4
 
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import Mapped
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -25,6 +26,7 @@ class SongLink(SQLModel, table=True):
     """Database model representing a song's presence on an external platform."""
 
     __tablename__ = "song_links"
+    __table_args__ = (UniqueConstraint("song_id", "platform"),)
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     song_id: UUID = Field(foreign_key="songs.id", ondelete="CASCADE")

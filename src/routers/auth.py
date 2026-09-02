@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from src.core.dependencies import authenticate_user
@@ -30,14 +31,14 @@ def register(
 
     Raises HTTP 400 if the email is already registered.
     """
-    statement = select(User).where(User.email == user_data.email)
-    existing_user = session.exec(statement).first()
+    email_taken = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Email already registered",
+    )
 
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
+    statement = select(User).where(User.email == user_data.email)
+    if session.exec(statement).first():
+        raise email_taken
 
     user = User(
         email=user_data.email,
@@ -54,7 +55,14 @@ def register(
         is_public=False,
     )
     session.add(library)
-    session.commit()
+
+    try:
+        session.commit()
+    except IntegrityError as error:
+        # Another request registered this email between the check and the commit.
+        session.rollback()
+        raise email_taken from error
+
     session.refresh(user)
     return user
 
