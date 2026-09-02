@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import desc
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from src.core.dependencies import get_current_user
@@ -88,6 +89,8 @@ def get_setlists(
         .where(
             (Setlist.user_id == current_user.id) | (Setlist.is_public == True)  # noqa: E712
         )
+        # from_setlist reads setlist.user; eager-load it to avoid a query per row.
+        .options(selectinload(Setlist.user))
         .order_by(
             (Setlist.user_id == current_user.id).desc(),
             Setlist.created_at.desc(),
