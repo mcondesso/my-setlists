@@ -76,6 +76,20 @@ def reset_db(test_engine):
     yield
 
 
+@pytest.fixture(autouse=True)
+def stub_youtube_lookup(monkeypatch):
+    """
+    Keep the background YouTube task off the network for every test.
+
+    Defaults to "no video found" (a no-op); tests that need a result
+    monkeypatch src.tasks.youtube.find_top_youtube_video themselves.
+    """
+    monkeypatch.setattr(
+        "src.tasks.youtube.find_top_youtube_video",
+        lambda artist, title: None,
+    )
+
+
 @pytest.fixture
 def client(test_engine):
     """

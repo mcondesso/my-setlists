@@ -3,22 +3,7 @@
 Known issues and follow-ups surfaced during the September 2026 code review.
 Ordered roughly by priority.
 
-## Correctness / test infrastructure
-
-### Background YouTube task writes to the wrong database under tests
-`fetch_and_save_youtube_link` ([src/tasks/youtube.py](../src/tasks/youtube.py)) opens
-`Session(engine)` using the module-level engine from `src.database`. The test suite
-(`tests/conftest.py`) builds a separate `StaticPool` in-memory engine and overrides the
-`get_session` dependency, but the background task bypasses that override — under tests it
-reads/writes an unrelated, empty in-memory database.
-
-Nothing asserts on the task's effect today, so it passes, but the task is effectively
-untestable and the first test that checks its output will be flaky.
-
-- Make the task accept a session factory / engine instead of importing `engine`.
-- Add a fixture that points it at the test engine, then cover: link saved on new-song
-  creation, skipped when a YouTube link already exists, no-op when the search returns
-  nothing.
+## Test infrastructure
 
 ### No router / `TestClient` tests
 All current tests call router functions directly with a `Session`, so FastAPI's
