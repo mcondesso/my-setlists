@@ -106,14 +106,22 @@ value in the path (one link per song per platform).
   used by `GET /songs/search`. Needs `DISCOGS_API_TOKEN`.
 - `src/services/youtube.py` — scrapes YouTube via the `youtube-search` package.
 - `src/tasks/youtube.py` — FastAPI `BackgroundTasks` job queued on song creation that
-  finds the most-viewed YouTube video and saves a `SongLink`. Opens its own `Session`
-  from the shared `engine`; failures are logged, never raised.
+  finds the most-viewed YouTube video and saves a `SongLink`. It opens its own `Session`
+  on the engine `create_song` passes it (`session.get_bind()`), so it writes to the same
+  database as the request; failures are logged, never raised. An autouse conftest fixture
+  stubs the lookup so tests never hit the network.
+
+## Tests
+
+- `tests/models/` and `tests/tasks/` call functions directly with a `Session`;
+  `tests/routers/` drives the app through `TestClient` (via the `authenticated_client`
+  fixture) and is where `response_model` serialization is covered.
+- `conftest.py` forces `ENVIRONMENT=test`, uses one in-memory SQLite engine
+  (`StaticPool`) recreated per test, and disables the rate limiter and YouTube lookup.
 
 ## Notes
 
-- Known issues and deferred follow-ups (missing migrations, no router tests, API
-  hardening) are tracked in [docs/backlog.md](docs/backlog.md).
-- Tests call router functions directly with a `Session`, so FastAPI `response_model`
-  validation/serialization is not exercised; there are no `TestClient` tests yet.
+- Deferred follow-ups (migrations, CORS, rate-limit scale-out) are tracked in
+  [docs/backlog.md](docs/backlog.md).
 - The committed `docs/my-setlists-schema.png` is generated from dbdiagram.io (link in
   `README.md`) and is not auto-updated.
