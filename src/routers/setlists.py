@@ -1,6 +1,6 @@
 """Setlist routes: create, read, update, delete, and manage song entries."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -204,14 +204,17 @@ def get_setlist_songs(
     setlist_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
+    order: Literal["position", "recent"] = "position",
 ) -> list[SetlistEntry]:
-    """Return all song entries in a setlist, ordered by position."""
+    """
+    Return all song entries in a setlist.
+
+    Ordered by ascending position (performance order) by default. Pass
+    order=recent to list the most recently added songs first.
+    """
     setlist = get_accessible_setlist(setlist_id, current_user, session)
-    statement = (
-        select(SetlistEntry)
-        .where(SetlistEntry.setlist_id == setlist.id)
-        .order_by(desc(SetlistEntry.position))
-    )
+    ordering = desc(SetlistEntry.added_at) if order == "recent" else SetlistEntry.position
+    statement = select(SetlistEntry).where(SetlistEntry.setlist_id == setlist.id).order_by(ordering)
     return list(session.exec(statement).all())
 
 

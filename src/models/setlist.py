@@ -145,5 +145,5 @@ class SetlistReadWithEntries(SQLModel):
             is_library=setlist.is_library,
             created_at=setlist.created_at,
             owner_display_name=setlist.user.display_name,
-            entries=setlist.entries,
+            entries=sorted(setlist.entries, key=lambda entry: entry.position),
         )
