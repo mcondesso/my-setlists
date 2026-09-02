@@ -110,7 +110,9 @@ value in the path (one link per song per platform).
 
 ## Notes
 
-- There are no API-level tests for `routers/setlists.py` or `routers/songs.py` yet;
-  coverage there is model-level only.
+- Known issues and deferred follow-ups (missing migrations, no router tests, API
+  hardening) are tracked in [docs/backlog.md](docs/backlog.md).
+- Tests call router functions directly with a `Session`, so FastAPI `response_model`
+  validation/serialization is not exercised; there are no `TestClient` tests yet.
 - The committed `docs/my-setlists-schema.png` is generated from dbdiagram.io (link in
   `README.md`) and is not auto-updated.
