@@ -36,17 +36,16 @@ Run the test suite:
 python -m pytest tests/ -v
 ```
 
-Run a specific test file:
+Run a specific test file or test:
 ```bash
-python -m pytest tests/test_users.py -v
+python -m pytest tests/routers/test_auth.py -v
+python -m pytest tests/models/test_setlist.py::test_name -v
 ```
 
-The test suite includes:
-- **test_users.py**: User authentication, profile management, and cascade deletion
-- **test_songs.py**: Song CRUD operations and setlist associations
-- **test_setlists.py**: Setlist management, song addition/removal, and access control
-
-All tests use an in-memory SQLite database for isolation and speed (16 tests pass in ~0.5s).
+Tests are split into `tests/models/` (direct DB/model behaviour) and
+`tests/routers/` (endpoint behaviour via `TestClient`). `tests/conftest.py`
+forces `ENVIRONMENT=test`, so every run uses a fresh in-memory SQLite database
+and no external services are needed.
 
 ## Architecture
 
@@ -60,27 +59,33 @@ The application uses SQLAlchemy 2.0's cascade delete functionality to automatica
 
 This eliminates the need for manual cascading deletes in route handlers.
 
-### Type Safety with SQLAlchemy 2.0 & SQLModel
+### Model layout & type safety
 
-Models use `Mapped` type annotations from SQLAlchemy 2.0 combined with Pydantic for full type safety:
+Each file in `src/models/` holds one entity's SQLModel table class together with its
+API schemas (`*Create`, `*Read`, `*Update`, `*ReadWith*`). Relationships use `Mapped`
+annotations from SQLAlchemy 2.0. Primary keys are `UUID`.
 
 ```python
 from typing import Optional, TYPE_CHECKING
+from uuid import UUID, uuid4
 from sqlalchemy.orm import Mapped
-from sqlmodel import SQLModel, Relationship
+from sqlmodel import Field, SQLModel, Relationship
 
 if TYPE_CHECKING:
-    from .user import User
+    from src.models.user import User
 
 class Setlist(SQLModel, table=True):
-    id: int | None = None
-    user_id: int | None = None
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", ondelete="CASCADE")
     user: Mapped[Optional["User"]] = Relationship(back_populates="setlists")
 ```
 
 Key patterns:
 - **Forward references** use `Optional["ClassName"]` (not `"ClassName" | None`) to work with `Mapped` types
-- **TYPE_CHECKING guards** prevent circular imports between related models
+- Cross-model schema references are imported both at module top level (so SQLAlchemy can
+  resolve relationship strings) and again under `TYPE_CHECKING` for annotations
+- `src/models/__init__.py` imports every table model so all tables register before
+  `init_db()` runs `SQLModel.metadata.create_all()`
 - **Cascade configuration** is defined via `sa_relationship_kwargs` on relationship fields
 
 ## Database Schema
