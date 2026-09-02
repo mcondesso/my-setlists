@@ -7,7 +7,6 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
@@ -19,36 +18,10 @@ from src.models.song import Song, SongCreate, SongRead, SongReadWithLinks, SongU
 from src.models.song_link import Platform, SongLink
 from src.models.user import User
 from src.services.discogs import search_discogs
+from src.services.setlists import add_song_to_setlist
 from src.tasks.youtube import fetch_and_save_youtube_link
 
 router = APIRouter()
-
-
-def get_next_position(setlist_id: UUID, session: Session) -> int:
-    """Return the next available position in a setlist."""
-    statement = (
-        select(SetlistEntry)
-        .where(SetlistEntry.setlist_id == setlist_id)
-        .order_by(desc(SetlistEntry.position))
-    )
-    last_entry = session.exec(statement).first()
-    return (last_entry.position + 1) if last_entry else 1
-
-
-def add_song_to_setlist(
-    song_id: UUID,
-    setlist_id: UUID,
-    session: Session,
-) -> None:
-    """Add a song to a setlist if it is not already present."""
-    existing = session.get(SetlistEntry, (setlist_id, song_id))
-    if not existing:
-        entry = SetlistEntry(
-            setlist_id=setlist_id,
-            song_id=song_id,
-            position=get_next_position(setlist_id, session),
-        )
-        session.add(entry)
 
 
 def user_has_song_access(song_id: UUID, user_id: UUID, session: Session) -> bool:
