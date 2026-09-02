@@ -6,6 +6,7 @@ Provides CRUD endpoints for song resources using FastAPI and SQLModel.
 from typing import Annotated
 from uuid import UUID
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
@@ -72,8 +73,23 @@ def search_songs(
 
     Results are shaped to match the fields required by POST /songs,
     so the client can pick one and save it directly.
+
+    Raises HTTP 504 if Discogs times out and HTTP 502 for any other
+    failure reaching it.
     """
-    results = search_discogs(query=q)
+    try:
+        results = search_discogs(query=q)
+    except httpx.TimeoutException as error:
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="The Discogs search timed out — try again.",
+        ) from error
+    except httpx.HTTPError as error:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="The Discogs search is currently unavailable.",
+        ) from error
+
     return [
         DiscogsSearchResultRead(
             discogs_id=r.discogs_id,
