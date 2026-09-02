@@ -1,16 +1,15 @@
-"""Database utilities for session management and schema initialization."""
+"""Database engine and session dependency.
 
-from sqlmodel import Session, SQLModel, create_engine
+The schema is owned by Alembic (see migrations/); nothing here creates
+tables. Tests build their own engine in tests/conftest.py.
+"""
 
-import src.models  # noqa: F401 — ensures all models are registered with SQLAlchemy
+from sqlmodel import Session, create_engine
+
+import src.models  # noqa: F401 — registers all models so ORM relationships resolve
 from src.core.config import settings
 
 engine = create_engine(settings.database_url, echo=False)
-
-
-def init_db() -> None:
-    """Create all database tables defined in SQLModel metadata."""
-    SQLModel.metadata.create_all(engine)
 
 
 def get_session():

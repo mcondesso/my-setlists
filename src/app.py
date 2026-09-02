@@ -1,24 +1,15 @@
 """Setlist API application entry point."""
 
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from src.core.rate_limit import limiter
-from src.database import init_db
 from src.routers import auth, setlists, song_links, songs, users
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Handle application startup and shutdown events."""
-    init_db()
-    yield
-
-
-app = FastAPI(title="Setlist API", lifespan=lifespan)
+# The schema is managed by Alembic (`alembic upgrade head`), not created at
+# startup — see migrations/.
+app = FastAPI(title="Setlist API")
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

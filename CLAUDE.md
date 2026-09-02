@@ -16,8 +16,13 @@ pip install -r requirements.txt
 cp .env.example .env       # .env is gitignored; all settings fields are required
 
 # Run the app — serves on APP_PORT (8000 in .env.example)
+docker compose up              # Postgres (not needed when ENVIRONMENT=test)
+alembic upgrade head           # apply migrations — the app does NOT create tables
 python main.py
-# Needs Postgres unless ENVIRONMENT=test: docker compose up
+
+# Migrations (Alembic) — see migrations/README; point DATABASE_URL at real Postgres
+alembic revision --autogenerate -m "..."
+alembic check                  # fails if models drift from migrations
 
 # Tests — conftest.py forces ENVIRONMENT=test (in-memory SQLite), no services needed
 python -m pytest tests/ -q
@@ -29,7 +34,8 @@ ruff check .
 ruff format --check .      # use `ruff format .` to apply
 ```
 
-CI (`.github/workflows/tests.yml`) runs ruff format check, ruff lint, and pytest on
+CI (`.github/workflows/tests.yml`) runs ruff format check, ruff lint, pytest, and an
+Alembic drift check (`alembic upgrade head` + `alembic check` against Postgres) on
 pushes/PRs to `main`.
 
 ## Configuration
@@ -54,13 +60,14 @@ Each `src/models/*.py` holds the SQLModel table class **and** its API schemas
   imported **both** at module top level **and** again under `if TYPE_CHECKING:`. The
   runtime import is required so SQLAlchemy can resolve `Relationship` string targets;
   don't "clean up" the apparent duplication.
-- `src/models/__init__.py` imports every table model, and `src/database.py` imports
-  `src.models` as a whole. This registration must happen before `init_db()` calls
-  `SQLModel.metadata.create_all()`, or tables go missing.
-- Primary keys are `UUID` (`default_factory=uuid4`). `created_at` uses a
-  `server_default=func.now()` column.
+- `src/models/__init__.py` imports every table model; `src/database.py` and
+  `migrations/env.py` both import `src.models` as a whole so all tables are registered
+  on `SQLModel.metadata` before it is used (ORM relationship resolution, Alembic
+  autogenerate).
+- Primary keys are `UUID` (`default_factory=uuid4`). `created_at` / `added_at` are
+  `datetime | None` with a `server_default=func.now()`, timezone-aware column.
 - Read schemas with computed fields (e.g. `owner_display_name` from `setlist.user`)
-  define an explicit `from_orm` classmethod that routers call manually, rather than
+  define an explicit `from_setlist` classmethod that routers call manually, rather than
   relying on FastAPI's `response_model` coercion.
 
 ### Domain rules
@@ -77,6 +84,15 @@ Each `src/models/*.py` holds the SQLModel table class **and** its API schemas
   in one of their own setlists (`user_has_song_access` in `routers/songs.py`).
 - **Visibility**: setlists are private unless `is_public=True`; public ones are readable
   by any authenticated user but only mutable by the owner.
+
+### Schema & migrations
+
+Alembic owns the schema (`migrations/`, config in `alembic.ini`). `migrations/env.py`
+pulls the URL from `settings.DATABASE_URL` and the metadata from `SQLModel.metadata`.
+The app never creates tables; run `alembic upgrade head` after a checkout or a pull that
+adds a revision. After a model change: `alembic revision --autogenerate -m "..."`
+against real Postgres, then review the generated file. Tests bypass Alembic — conftest
+builds tables with `SQLModel.metadata.create_all` on its own in-memory engine.
 
 ### Cascade deletes
 
@@ -121,7 +137,7 @@ value in the path (one link per song per platform).
 
 ## Notes
 
-- Deferred follow-ups (migrations, CORS, rate-limit scale-out) are tracked in
+- Deferred follow-ups (CORS, rate-limit scale-out) are tracked in
   [docs/backlog.md](docs/backlog.md).
 - The committed `docs/my-setlists-schema.png` is generated from dbdiagram.io (link in
   `README.md`) and is not auto-updated.
