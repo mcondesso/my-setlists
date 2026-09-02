@@ -3,9 +3,9 @@
 import logging
 from uuid import UUID
 
+from sqlalchemy.engine import Engine
 from sqlmodel import Session, select
 
-from src.database import engine
 from src.models.song import Song
 from src.models.song_link import Platform, SongLink
 from src.services.youtube import find_top_youtube_video
@@ -13,9 +13,13 @@ from src.services.youtube import find_top_youtube_video
 logger = logging.getLogger(__name__)
 
 
-def fetch_and_save_youtube_link(song_id: UUID) -> None:
+def fetch_and_save_youtube_link(song_id: UUID, engine: Engine) -> None:
     """
     Find the most-viewed YouTube video for a song and save it to song_links.
+
+    Runs as a background task after the request that created the song, so it
+    opens its own session. `engine` is the bind of that request's session
+    (passed by the caller) so the task writes to the same database.
 
     Skips the lookup if a YouTube link already exists for the song.
     Logs a warning and exits silently if no video is found or an error occurs.

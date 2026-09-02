@@ -167,7 +167,7 @@ def create_song(
             )
             session.add(song_link)
 
-        background_tasks.add_task(fetch_and_save_youtube_link, song.id)
+        background_tasks.add_task(fetch_and_save_youtube_link, song.id, session.get_bind())
 
     for setlist_id in setlist_ids:
         add_song_to_setlist(song.id, setlist_id, session)
