@@ -74,12 +74,13 @@ def get_accessible_setlist(
 def get_setlists(
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
-) -> list[Setlist]:
+) -> list[SetlistRead]:
     """
     Return all setlists visible to the current user.
 
     Results include the user's own setlists and all public setlists from
-    other users. The current user's setlists are returned first.
+    other users. The current user's setlists are returned first. Song
+    entries are omitted here; fetch a single setlist to get them.
     """
     statement = (
         select(Setlist)
@@ -92,7 +93,7 @@ def get_setlists(
         )
     )
     setlists = session.exec(statement).all()
-    return [SetlistReadWithEntries.from_orm(s) for s in setlists]
+    return [SetlistRead.from_orm(s) for s in setlists]
 
 
 @router.post("/", response_model=SetlistRead, status_code=status.HTTP_201_CREATED)
