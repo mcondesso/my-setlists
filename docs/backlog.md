@@ -3,17 +3,6 @@
 Known issues and follow-ups surfaced during the September 2026 code review.
 Ordered roughly by priority.
 
-## Schema management
-
-### No migration tool
-[src/database.py](../src/database.py) calls `SQLModel.metadata.create_all()` on startup.
-That never alters an existing table, so any model change (including the new
-`song_links` `UniqueConstraint(song_id, platform)` added in this branch) will not reach a
-database that already has the table.
-
-- Adopt Alembic; generate an initial revision from the current models.
-- Apply the `song_links` unique constraint to any existing deployment by hand until then.
-
 ## API hardening
 
 - **No CORS middleware** — a browser frontend on another origin can't call the API. Add

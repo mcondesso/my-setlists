@@ -1,0 +1,34 @@
+Database migrations (Alembic)
+=============================
+
+The schema is defined by the SQLModel models in `src/models/` and applied
+to the database through the revisions in `versions/`. Nothing creates
+tables at application startup.
+
+`migrations/env.py` takes the database URL from
+`src.core.config.settings.DATABASE_URL` and the target metadata from
+`SQLModel.metadata`, so `alembic` uses the same configuration as the app.
+Run it from the project root with the environment loaded (the `.env`
+file, or exported variables):
+
+    alembic upgrade head              # apply all pending migrations
+    alembic downgrade -1              # roll back the last one
+    alembic revision --autogenerate -m "describe the change"
+    alembic check                     # fail if models drift from migrations
+
+`alembic revision --autogenerate` and `alembic check` compare against the
+*live* database, so point `DATABASE_URL` at a real PostgreSQL instance
+(e.g. the `docker compose` one). Running them against SQLite reports
+spurious `server_default` diffs because SQLite stores `now()` as
+`CURRENT_TIMESTAMP`.
+
+First-time adoption on a database that predates Alembic (its tables were
+created by the old `create_all` startup hook):
+
+    alembic stamp head               # record head without running the migration
+
+then apply anything added since by hand — currently the
+`song_links (song_id, platform)` unique constraint:
+
+    ALTER TABLE song_links ADD CONSTRAINT uq_song_links_song_id_platform
+        UNIQUE (song_id, platform);

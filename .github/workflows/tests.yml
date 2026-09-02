@@ -48,3 +48,50 @@ jobs:
 
       - name: Run pytest
         run: python -m pytest tests/ -q
+
+  migrations:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: setlists
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      SECRET_KEY: ci-not-a-secret
+      UVICORN_RELOAD: "false"
+      APP_PORT: "8000"
+      ENVIRONMENT: development
+      DISCOGS_API_TOKEN: ci
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/setlists
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Apply migrations
+        run: alembic upgrade head
+
+      - name: Fail if models have drifted from migrations
+        run: alembic check

@@ -24,10 +24,19 @@ Start the database and other services with Docker Compose:
 docker compose up
 ```
 
+Apply database migrations (see [migrations/README](migrations/README)):
+```bash
+alembic upgrade head
+```
+
 Then run the FastAPI app in a separate terminal:
 ```bash
 python main.py
 ```
+
+The app does not create tables on startup — `alembic upgrade head` is
+required after a fresh checkout and after pulling changes that add a
+migration.
 
 ## Testing
 
