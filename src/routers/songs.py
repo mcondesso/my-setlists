@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import desc
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from src.core.dependencies import get_current_user
@@ -139,9 +140,12 @@ def create_song(
     setlist_ids = song_data.setlist_ids
     validate_user_setlist_ids(setlist_ids, current_user.id, session)
 
-    song = session.exec(
-        select(Song).where(Song.title == song_data.title, Song.artist == song_data.artist)
-    ).first()
+    def find_existing_song() -> Song | None:
+        return session.exec(
+            select(Song).where(Song.title == song_data.title, Song.artist == song_data.artist)
+        ).first()
+
+    song = find_existing_song()
 
     if not song:
         song = Song(
@@ -169,7 +173,18 @@ def create_song(
     for setlist_id in setlist_ids:
         add_song_to_setlist(song.id, setlist_id, session)
 
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        # A concurrent request inserted the same (title, artist) first; reuse it.
+        session.rollback()
+        song = find_existing_song()
+        if song is None:
+            raise
+        for setlist_id in setlist_ids:
+            add_song_to_setlist(song.id, setlist_id, session)
+        session.commit()
+
     session.refresh(song)
     return song
 

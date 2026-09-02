@@ -4,6 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from src.core.dependencies import get_current_user
@@ -74,6 +75,11 @@ def add_song_link(
     """
     get_song_or_404(song_id, session)
 
+    link_exists = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"A {platform.value} link already exists for this song — use PUT to update it",
+    )
+
     existing = session.exec(
         select(SongLink).where(
             SongLink.song_id == song_id,
@@ -81,10 +87,7 @@ def add_song_link(
         )
     ).first()
     if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"A {platform.value} link already exists for this song — use PUT to update it",
-        )
+        raise link_exists
 
     link = SongLink(
         song_id=song_id,
@@ -93,7 +96,14 @@ def add_song_link(
         url=link_data.url,
     )
     session.add(link)
-    session.commit()
+
+    try:
+        session.commit()
+    except IntegrityError as error:
+        # A concurrent request added the same (song, platform) link first.
+        session.rollback()
+        raise link_exists from error
+
     session.refresh(link)
     return link
 
