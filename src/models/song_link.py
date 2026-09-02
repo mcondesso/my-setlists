@@ -56,7 +56,7 @@ class SongLinkRead(SQLModel):
     song_id: UUID
     platform: Platform
     external_id: str
-    url: str
+    url: str | None
 
 
 class SongLinkReadNested(SQLModel):
@@ -64,4 +64,4 @@ class SongLinkReadNested(SQLModel):
 
     platform: Platform
     external_id: str
-    url: str
+    url: str | None
