@@ -6,6 +6,7 @@ from src.core.config import settings
 
 DISCOGS_URL = "https://www.discogs.com"
 DISCOGS_API_URL = "https://api.discogs.com"
+REQUEST_TIMEOUT_SECONDS = 10.0
 DISCOGS_HEADERS = {
     "Authorization": f"Discogs token={settings.DISCOGS_API_TOKEN}",
     "User-Agent": "MySetlists/1.0",
@@ -50,6 +51,7 @@ def search_discogs(query: str, limit: int = 5) -> list[DiscogsSearchResult]:
             "per_page": limit,
             "page": 1,
         },
+        timeout=REQUEST_TIMEOUT_SECONDS,
     )
     response.raise_for_status()
     data = response.json()
