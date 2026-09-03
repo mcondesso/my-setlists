@@ -11,7 +11,7 @@ Ordered roughly by priority.
   `POST /auth/login`, but with in-memory storage the limit is per worker/container, and
   it keys on the client IP so a shared NAT is limited as one client. Move to a shared
   store (Redis) when running more than one process, and make sure the deployment forwards
-  the real client IP (see `src/core/rate_limit.py`).
+  the real client IP (see `backend/src/core/rate_limit.py`).
 
 ## Performance
 

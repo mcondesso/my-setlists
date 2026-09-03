@@ -93,8 +93,9 @@ Key patterns:
 - **Forward references** use `Optional["ClassName"]` (not `"ClassName" | None`) to work with `Mapped` types
 - Cross-model schema references are imported both at module top level (so SQLAlchemy can
   resolve relationship strings) and again under `TYPE_CHECKING` for annotations
-- `src/models/__init__.py` imports every table model so all tables register before
-  `init_db()` runs `SQLModel.metadata.create_all()`
+- `src/models/__init__.py` imports every table model so all tables are registered on
+  `SQLModel.metadata`, which the ORM and Alembic autogenerate both rely on (the app
+  itself no longer creates tables — migrations do)
 - **Cascade configuration** is defined via `sa_relationship_kwargs` on relationship fields
 
 ## Database Schema
@@ -103,4 +104,4 @@ The database schema is shown below. The diagram was generated with dbdiagram.io:
 
 - Diagram link: https://dbdiagram.io/d/MySetlists-6a3969b39340ecc065ef0adf
 
-![Database schema](docs/my-setlists-schema.png)
+![Database schema](../docs/my-setlists-schema.png)
