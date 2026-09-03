@@ -6,17 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 FastAPI + SQLModel REST API for building and sharing musical setlists. Users register,
 create setlists, add globally-shared songs to them, and attach external platform links
-(Discogs, YouTube, etc.) to songs. No frontend — API only, browsable at `/docs`.
+(Discogs, YouTube, etc.) to songs. API only, browsable at `/docs`.
+
+This is the `backend/` package of the repo; run every command below from this
+directory (its `.venv/`, `requirements.txt`, `ruff.toml`, `alembic.ini` are here).
+Repo-wide files (`docker-compose.yml`, `.github/`, `docs/`) are one level up.
 
 ## Commands
 
 ```bash
-# Setup (Python 3.12, venv at .venv/)
+# Setup (Python 3.12) — run from backend/; venv lives at backend/.venv/
 pip install -r requirements.txt
 cp .env.example .env       # .env is gitignored; all settings fields are required
 
 # Run the app — serves on APP_PORT (8000 in .env.example)
-docker compose up              # Postgres (not needed when ENVIRONMENT=test)
+docker compose up              # from repo root; Postgres (not needed when ENVIRONMENT=test)
 alembic upgrade head           # apply migrations — the app does NOT create tables
 python main.py
 
@@ -34,9 +38,9 @@ ruff check .
 ruff format --check .      # use `ruff format .` to apply
 ```
 
-CI (`.github/workflows/tests.yml`) runs ruff format check, ruff lint, pytest, and an
-Alembic drift check (`alembic upgrade head` + `alembic check` against Postgres) on
-pushes/PRs to `main`.
+CI (`../.github/workflows/tests.yml`) runs — with `working-directory: backend` — ruff
+format check, ruff lint, pytest, and an Alembic drift check (`alembic upgrade head` +
+`alembic check` against Postgres) on pushes/PRs to `main`.
 
 ## Configuration
 
@@ -138,6 +142,6 @@ value in the path (one link per song per platform).
 ## Notes
 
 - Deferred follow-ups (CORS, rate-limit scale-out) are tracked in
-  [docs/backlog.md](docs/backlog.md).
-- The committed `docs/my-setlists-schema.png` is generated from dbdiagram.io (link in
+  [../docs/backlog.md](../docs/backlog.md).
+- The committed `../docs/my-setlists-schema.png` is generated from dbdiagram.io (link in
   `README.md`) and is not auto-updated.

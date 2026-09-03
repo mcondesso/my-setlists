@@ -16,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: test
 
+    defaults:
+      run:
+        working-directory: backend
+
     env:
       ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.ACCESS_TOKEN_EXPIRE_MINUTES }}
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
@@ -34,6 +38,7 @@ jobs:
         with:
           python-version: '3.12'
           cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
         run: |
@@ -51,6 +56,10 @@ jobs:
 
   migrations:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
 
     services:
       postgres:
@@ -84,6 +93,7 @@ jobs:
         with:
           python-version: '3.12'
           cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
         run: |
