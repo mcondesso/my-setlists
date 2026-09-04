@@ -16,11 +16,14 @@ file, or exported variables):
     alembic revision --autogenerate -m "describe the change"
     alembic check                     # fail if models drift from migrations
 
-`alembic revision --autogenerate` and `alembic check` compare against the
-*live* database, so point `DATABASE_URL` at a real PostgreSQL instance
-(e.g. the `docker compose` one). Running them against SQLite reports
-spurious `server_default` diffs because SQLite stores `now()` as
-`CURRENT_TIMESTAMP`.
+Point `DATABASE_URL` at a real PostgreSQL instance (e.g. the `docker compose`
+one) for every one of these commands — SQLite is only ever used for the test
+suite, and only via `SQLModel.metadata.create_all()` (see `tests/conftest.py`),
+never through Alembic. `alembic upgrade head` against a SQLite file fails
+outright: the initial revision's `server_default=sa.text('now()')` is valid
+Postgres but not a SQLite function. `alembic revision --autogenerate` and
+`alembic check` would additionally report spurious `server_default` diffs
+against SQLite, since it stores `now()`-defaulted columns as `CURRENT_TIMESTAMP`.
 
 First-time adoption on a database that predates Alembic (its tables were
 created by the old `create_all` startup hook):

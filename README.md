@@ -7,7 +7,7 @@ Build and share musical setlists.
 | Path | What |
 |------|------|
 | [`backend/`](backend/) | FastAPI + SQLModel REST API — see [`backend/README.md`](backend/README.md) |
-| `frontend/` | Web UI (not added yet) |
+| [`frontend/`](frontend/) | Vite + Svelte SPA — see [`frontend/README.md`](frontend/README.md) |
 | [`docs/`](docs/) | Cross-cutting docs, including the [backlog](docs/backlog.md) |
 | `docker-compose.yml` | Local services (Postgres) |
 
@@ -15,12 +15,20 @@ Build and share musical setlists.
 
 ```bash
 docker compose up                      # Postgres
+
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env                    # fill in real values
 alembic upgrade head
-python main.py
+python main.py                          # http://localhost:8000
+
+# in another terminal
+cd frontend
+npm install
+cp .env.example .env
+npm run dev                             # http://localhost:5173
 ```
 
-See [`backend/README.md`](backend/README.md) for details.
+See [`backend/README.md`](backend/README.md) and
+[`frontend/README.md`](frontend/README.md) for details.
