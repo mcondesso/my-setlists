@@ -5,6 +5,8 @@ server-side rendering, no component library — plain CSS in `src/app.css`.
 
 ## Setup
 
+Node version pinned in `.nvmrc` (`nvm use`).
+
 ```bash
 npm install
 cp .env.example .env      # VITE_API_URL, defaults to http://localhost:8000
@@ -21,6 +23,7 @@ allowed in its `CORS_ORIGINS` setting (`backend/.env.example` already includes
 npm run dev        # dev server with HMR
 npm run build      # type-checks (svelte-check) then builds to dist/
 npm run check       # svelte-check + tsc, no build
+npm test            # vitest run — unit + component tests, no watch
 npm run preview     # serve the production build locally
 ```
 
@@ -31,21 +34,31 @@ src/
   lib/
     api.ts            # fetch wrapper: base URL, Bearer header, error shaping
     backend.ts         # typed functions for each API call the UI makes
+    session.ts          # completeLogin() — composes backend.ts + auth.svelte.ts
     auth.svelte.ts      # reactive auth state (token + current user), persisted to localStorage
     router.svelte.ts    # ~15-line hash router (no routing library)
     types.ts            # TS interfaces mirroring backend/src/models/*.py schemas
+  components/
+    OwnerBadge.svelte   # "by X · Public" line shared by Setlists and SetlistDetail
   pages/
     Login.svelte, Register.svelte, Setlists.svelte, SetlistDetail.svelte
   App.svelte             # header/nav + route switch
 ```
 
+`*.test.ts` files sit next to what they test (e.g. `lib/api.test.ts`,
+`App.svelte.test.ts`). Run with `npm test`; Vitest + `@testing-library/svelte`,
+configured in `vite.config.ts` / `vitest-setup.ts`.
+
 ## Auth
 
 The API issues a JWT (`POST /auth/login`, form-encoded per
-`OAuth2PasswordRequestForm`). The frontend stores it in `localStorage` and
-sends `Authorization: Bearer <token>` on every request — no cookies, so no
-CSRF handling is needed. A 401 response clears the stored token and the app
-falls back to the login screen (see `lib/api.ts`).
+`OAuth2PasswordRequestForm`). `lib/session.ts`'s `completeLogin()` validates
+the token (fetches `/users/me` with it directly) *before* committing it to
+the reactive `auth` store — so a failure anywhere in the login sequence never
+leaves the app in a half-authenticated state. The token then lives in
+`localStorage` and is sent as `Authorization: Bearer <token>` on every
+request — no cookies, so no CSRF handling is needed. A 401 response clears
+the stored token and the app falls back to the login screen (see `lib/api.ts`).
 
 ## What's covered
 
