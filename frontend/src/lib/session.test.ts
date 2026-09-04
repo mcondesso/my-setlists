@@ -17,7 +17,10 @@ describe("completeLogin", () => {
   });
 
   it("sets auth.token and auth.user only once both calls succeed", async () => {
-    vi.mocked(login).mockResolvedValue({ access_token: "tok", token_type: "bearer" });
+    vi.mocked(login).mockResolvedValue({
+      access_token: "tok",
+      token_type: "bearer",
+    });
     vi.mocked(fetchMeAs).mockResolvedValue({
       id: "1",
       email: "a@example.com",
@@ -36,10 +39,15 @@ describe("completeLogin", () => {
     // Regression test: this is the exact sequence that used to leave the app
     // stuck showing an authenticated screen with no user profile (issue
     // fixed by validating the token via fetchMeAs before calling setToken).
-    vi.mocked(login).mockResolvedValue({ access_token: "tok", token_type: "bearer" });
+    vi.mocked(login).mockResolvedValue({
+      access_token: "tok",
+      token_type: "bearer",
+    });
     vi.mocked(fetchMeAs).mockRejectedValue(new Error("network blip"));
 
-    await expect(completeLogin("a@example.com", "password123")).rejects.toThrow("network blip");
+    await expect(completeLogin("a@example.com", "password123")).rejects.toThrow(
+      "network blip",
+    );
 
     expect(auth.token).toBeNull();
     expect(auth.user).toBeNull();
@@ -48,7 +56,9 @@ describe("completeLogin", () => {
   it("never calls fetchMeAs if login itself fails", async () => {
     vi.mocked(login).mockRejectedValue(new Error("bad credentials"));
 
-    await expect(completeLogin("a@example.com", "wrong")).rejects.toThrow("bad credentials");
+    await expect(completeLogin("a@example.com", "wrong")).rejects.toThrow(
+      "bad credentials",
+    );
 
     expect(fetchMeAs).not.toHaveBeenCalled();
     expect(auth.token).toBeNull();

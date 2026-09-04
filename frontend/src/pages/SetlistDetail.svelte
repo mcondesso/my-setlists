@@ -1,6 +1,11 @@
 <script lang="ts">
   import { errorMessage } from "../lib/api";
-  import { addSongToSetlist, fetchSetlist, removeSongFromSetlist, searchSongs } from "../lib/backend";
+  import {
+    addSongToSetlist,
+    fetchSetlist,
+    removeSongFromSetlist,
+    searchSongs,
+  } from "../lib/backend";
   import type { DiscogsSearchResult, SetlistWithEntries } from "../lib/types";
   import OwnerBadge from "../components/OwnerBadge.svelte";
 
@@ -48,7 +53,9 @@
     try {
       await removeSongFromSetlist(id, songId);
       if (setlist) {
-        setlist.entries = setlist.entries.filter((entry) => entry.song_id !== songId);
+        setlist.entries = setlist.entries.filter(
+          (entry) => entry.song_id !== songId,
+        );
       }
     } catch (err) {
       error = errorMessage(err, "Could not remove song.");
@@ -96,7 +103,10 @@
 {:else}
   <h1>{setlist.name}</h1>
   {#if setlist.description}<p>{setlist.description}</p>{/if}
-  <OwnerBadge ownerDisplayName={setlist.owner_display_name} isPublic={setlist.is_public} />
+  <OwnerBadge
+    ownerDisplayName={setlist.owner_display_name}
+    isPublic={setlist.is_public}
+  />
 
   {#if error}<p class="error">{error}</p>{/if}
 
@@ -110,7 +120,9 @@
           <strong>{entry.song.title}</strong>
           <span>{entry.song.artist}</span>
         </div>
-        <button class="ghost" onclick={() => handleRemove(entry.song_id)}>Remove</button>
+        <button class="ghost" onclick={() => handleRemove(entry.song_id)}
+          >Remove</button
+        >
       </li>
     {:else}
       <li class="empty">No songs yet — search below to add one.</li>
@@ -120,7 +132,9 @@
   <form class="card narrow search" onsubmit={handleSearch}>
     <h2>Add a song</h2>
     <input bind:value={query} placeholder="Search Discogs…" />
-    <button type="submit" disabled={searching}>{searching ? "Searching…" : "Search"}</button>
+    <button type="submit" disabled={searching}
+      >{searching ? "Searching…" : "Search"}</button
+    >
   </form>
 
   {#if results.length > 0}
@@ -132,9 +146,15 @@
           {/if}
           <div class="song-info">
             <strong>{result.title}</strong>
-            <span>{result.artist}{#if result.release_year} · {result.release_year}{/if}</span>
+            <span
+              >{result.artist}{#if result.release_year}
+                · {result.release_year}{/if}</span
+            >
           </div>
-          <button onclick={() => handleAdd(result)} disabled={addingId === result.discogs_id}>
+          <button
+            onclick={() => handleAdd(result)}
+            disabled={addingId === result.discogs_id}
+          >
             {addingId === result.discogs_id ? "Adding…" : "Add"}
           </button>
         </li>

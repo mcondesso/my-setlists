@@ -70,7 +70,9 @@
     <input type="checkbox" bind:checked={newIsPublic} />
     Public
   </label>
-  <button type="submit" disabled={creating}>{creating ? "Creating…" : "Create"}</button>
+  <button type="submit" disabled={creating}
+    >{creating ? "Creating…" : "Create"}</button
+  >
 </form>
 
 {#if loading}
@@ -87,7 +89,10 @@
             {#if setlist.is_library}<span class="badge">Library</span>{/if}
           </h3>
           {#if setlist.description}<p>{setlist.description}</p>{/if}
-          <OwnerBadge ownerDisplayName={setlist.owner_display_name} isPublic={setlist.is_public} />
+          <OwnerBadge
+            ownerDisplayName={setlist.owner_display_name}
+            isPublic={setlist.is_public}
+          />
         </a>
       </li>
     {/each}

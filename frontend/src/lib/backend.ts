@@ -2,15 +2,32 @@
 // out of the page components.
 
 import { api } from "./api";
-import type { DiscogsSearchResult, Setlist, SetlistWithEntries, SongRead, User } from "./types";
+import type {
+  DiscogsSearchResult,
+  Setlist,
+  SetlistWithEntries,
+  SongRead,
+  User,
+} from "./types";
 
-export function login(email: string, password: string): Promise<{ access_token: string; token_type: string }> {
+export function login(
+  email: string,
+  password: string,
+): Promise<{ access_token: string; token_type: string }> {
   const form = new URLSearchParams({ username: email, password });
   return api.postForm("/auth/login", form);
 }
 
-export function register(email: string, displayName: string, password: string): Promise<User> {
-  return api.post("/auth/register", { email, display_name: displayName, password });
+export function register(
+  email: string,
+  displayName: string,
+  password: string,
+): Promise<User> {
+  return api.post("/auth/register", {
+    email,
+    display_name: displayName,
+    password,
+  });
 }
 
 export function fetchMe(): Promise<User> {
@@ -21,7 +38,9 @@ export function fetchMe(): Promise<User> {
  * app-wide auth.token — used to validate a freshly issued token before
  * committing it (see lib/session.ts). */
 export function fetchMeAs(token: string): Promise<User> {
-  return api.get("/users/me", { headers: { Authorization: `Bearer ${token}` } });
+  return api.get("/users/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 
 export function fetchSetlists(): Promise<Setlist[]> {
@@ -40,7 +59,10 @@ export function createSetlist(data: {
   return api.post("/setlists/", data);
 }
 
-export function removeSongFromSetlist(setlistId: string, songId: string): Promise<void> {
+export function removeSongFromSetlist(
+  setlistId: string,
+  songId: string,
+): Promise<void> {
   return api.delete(`/setlists/${setlistId}/songs/${songId}`);
 }
 
@@ -48,7 +70,10 @@ export function searchSongs(query: string): Promise<DiscogsSearchResult[]> {
   return api.get(`/songs/search?q=${encodeURIComponent(query)}`);
 }
 
-export function addSongToSetlist(setlistId: string, result: DiscogsSearchResult): Promise<SongRead> {
+export function addSongToSetlist(
+  setlistId: string,
+  result: DiscogsSearchResult,
+): Promise<SongRead> {
   return api.post("/songs/", {
     title: result.title,
     artist: result.artist,

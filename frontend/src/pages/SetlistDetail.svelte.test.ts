@@ -40,20 +40,28 @@ describe("SetlistDetail", () => {
       resolveB = resolve;
     });
 
-    vi.mocked(fetchSetlist).mockImplementation((id: string) => (id === "a" ? pendingA : pendingB));
+    vi.mocked(fetchSetlist).mockImplementation((id: string) =>
+      id === "a" ? pendingA : pendingB,
+    );
 
     const { rerender } = render(SetlistDetail, { props: { id: "a" } });
     await rerender({ id: "b" });
 
     resolveB(setlist("b", "Setlist B"));
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Setlist B" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Setlist B" }),
+      ).toBeInTheDocument();
     });
 
     resolveA(setlist("a", "Setlist A"));
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(screen.getByRole("heading", { name: "Setlist B" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Setlist A" })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Setlist B" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Setlist A" }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api, ApiError, errorMessage, normalizeBaseUrl } from "./api";
 import { auth, logout, setToken } from "./auth.svelte";
 
-function mockFetchOnce(response: Partial<Response> & { json?: () => Promise<unknown> }) {
+function mockFetchOnce(
+  response: Partial<Response> & { json?: () => Promise<unknown> },
+) {
   const fetchMock = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
@@ -16,18 +18,26 @@ function mockFetchOnce(response: Partial<Response> & { json?: () => Promise<unkn
 
 describe("normalizeBaseUrl", () => {
   it("strips one or more trailing slashes", () => {
-    expect(normalizeBaseUrl("http://localhost:8000/")).toBe("http://localhost:8000");
-    expect(normalizeBaseUrl("http://localhost:8000///")).toBe("http://localhost:8000");
+    expect(normalizeBaseUrl("http://localhost:8000/")).toBe(
+      "http://localhost:8000",
+    );
+    expect(normalizeBaseUrl("http://localhost:8000///")).toBe(
+      "http://localhost:8000",
+    );
   });
 
   it("leaves a URL with no trailing slash untouched", () => {
-    expect(normalizeBaseUrl("http://localhost:8000")).toBe("http://localhost:8000");
+    expect(normalizeBaseUrl("http://localhost:8000")).toBe(
+      "http://localhost:8000",
+    );
   });
 });
 
 describe("errorMessage", () => {
   it("uses the ApiError's message", () => {
-    expect(errorMessage(new ApiError(400, "bad request"), "fallback")).toBe("bad request");
+    expect(errorMessage(new ApiError(400, "bad request"), "fallback")).toBe(
+      "bad request",
+    );
   });
 
   it("uses the fallback for anything that isn't an ApiError", () => {
@@ -49,17 +59,23 @@ describe("api requests", () => {
     await api.get("/whoami");
 
     const [, init] = fetchMock.mock.calls[0];
-    expect((init.headers as Headers).get("Authorization")).toBe("Bearer stored-token");
+    expect((init.headers as Headers).get("Authorization")).toBe(
+      "Bearer stored-token",
+    );
   });
 
   it("lets a caller-supplied Authorization header win over the stored token", async () => {
     setToken("stored-token");
     const fetchMock = mockFetchOnce({ json: async () => ({}) });
 
-    await api.get("/whoami", { headers: { Authorization: "Bearer explicit-token" } });
+    await api.get("/whoami", {
+      headers: { Authorization: "Bearer explicit-token" },
+    });
 
     const [, init] = fetchMock.mock.calls[0];
-    expect((init.headers as Headers).get("Authorization")).toBe("Bearer explicit-token");
+    expect((init.headers as Headers).get("Authorization")).toBe(
+      "Bearer explicit-token",
+    );
   });
 
   it("logs out on a 401 so a stale token isn't retried", async () => {
@@ -95,7 +111,9 @@ describe("api requests", () => {
       json: async () => ({ error: "Rate limit exceeded: 5 per 1 minute" }),
     });
 
-    await expect(api.get("/auth/login")).rejects.toThrow("Rate limit exceeded: 5 per 1 minute");
+    await expect(api.get("/auth/login")).rejects.toThrow(
+      "Rate limit exceeded: 5 per 1 minute",
+    );
   });
 
   it("falls back to the status text when the error body isn't JSON", async () => {

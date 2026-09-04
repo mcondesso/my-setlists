@@ -5,7 +5,9 @@ export function normalizeBaseUrl(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
-const BASE_URL: string = normalizeBaseUrl(import.meta.env.VITE_API_URL ?? "http://localhost:8000");
+const BASE_URL: string = normalizeBaseUrl(
+  import.meta.env.VITE_API_URL ?? "http://localhost:8000",
+);
 
 export class ApiError extends Error {
   status: number;
@@ -41,7 +43,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!headers.has("Authorization") && auth.token) {
     headers.set("Authorization", `Bearer ${auth.token}`);
   }
-  if (init.body && !(init.body instanceof URLSearchParams) && !headers.has("Content-Type")) {
+  if (
+    init.body &&
+    !(init.body instanceof URLSearchParams) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -62,12 +68,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  get: <T>(path: string, init?: RequestInit): Promise<T> => request<T>(path, init),
+  get: <T>(path: string, init?: RequestInit): Promise<T> =>
+    request<T>(path, init),
   post: <T>(path: string, body?: unknown): Promise<T> =>
-    request<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }),
+    request<T>(path, {
+      method: "POST",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }),
   patch: <T>(path: string, body?: unknown): Promise<T> =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
-  delete: <T>(path: string): Promise<T> => request<T>(path, { method: "DELETE" }),
+  delete: <T>(path: string): Promise<T> =>
+    request<T>(path, { method: "DELETE" }),
   postForm: <T>(path: string, form: URLSearchParams): Promise<T> =>
     request<T>(path, { method: "POST", body: form }),
 };

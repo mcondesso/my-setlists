@@ -25,7 +25,12 @@ describe("auth store", () => {
 
   it("logout clears both the token and the current user", () => {
     setToken("abc123");
-    auth.user = { id: "1", email: "a@example.com", display_name: "Ada", created_at: "now" };
+    auth.user = {
+      id: "1",
+      email: "a@example.com",
+      display_name: "Ada",
+      created_at: "now",
+    };
 
     logout();
 

@@ -7,7 +7,8 @@ export interface User {
   created_at: string;
 }
 
-export type Platform = "discogs" | "youtube" | "spotify" | "apple_music" | "bandcamp";
+export type Platform =
+  "discogs" | "youtube" | "spotify" | "apple_music" | "bandcamp";
 
 export interface SongLink {
   platform: Platform;

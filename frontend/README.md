@@ -53,7 +53,7 @@ configured in `vite.config.ts` / `vitest-setup.ts`.
 
 The API issues a JWT (`POST /auth/login`, form-encoded per
 `OAuth2PasswordRequestForm`). `lib/session.ts`'s `completeLogin()` validates
-the token (fetches `/users/me` with it directly) *before* committing it to
+the token (fetches `/users/me` with it directly) _before_ committing it to
 the reactive `auth` store — so a failure anywhere in the login sequence never
 leaves the app in a half-authenticated state. The token then lives in
 `localStorage` and is sent as `Authorization: Bearer <token>` on every
