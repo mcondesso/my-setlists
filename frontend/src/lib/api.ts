@@ -1,6 +1,11 @@
 import { auth, logout } from "./auth.svelte";
 
-const BASE_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+/** Exported for testing — pure string logic, no import.meta.env plumbing needed. */
+export function normalizeBaseUrl(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
+const BASE_URL: string = normalizeBaseUrl(import.meta.env.VITE_API_URL ?? "http://localhost:8000");
 
 export class ApiError extends Error {
   status: number;
@@ -11,11 +16,18 @@ export class ApiError extends Error {
   }
 }
 
+/** Shorthand for the `err instanceof ApiError ? err.message : fallback` check every catch block needs. */
+export function errorMessage(err: unknown, fallback: string): string {
+  return err instanceof ApiError ? err.message : fallback;
+}
+
 async function extractErrorMessage(response: Response): Promise<string> {
   try {
     const body = await response.json();
     if (typeof body.detail === "string") return body.detail;
     if (body.detail) return JSON.stringify(body.detail);
+    // slowapi's rate-limit handler uses {"error": "..."} rather than {"detail": "..."}.
+    if (typeof body.error === "string") return body.error;
   } catch {
     // Response body wasn't JSON (or was empty) — fall through to the status text.
   }
@@ -24,7 +36,11 @@ async function extractErrorMessage(response: Response): Promise<string> {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  if (auth.token) headers.set("Authorization", `Bearer ${auth.token}`);
+  // A caller-supplied Authorization header wins — used to validate a fresh
+  // token (see lib/session.ts) before it becomes the app-wide auth.token.
+  if (!headers.has("Authorization") && auth.token) {
+    headers.set("Authorization", `Bearer ${auth.token}`);
+  }
   if (init.body && !(init.body instanceof URLSearchParams) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
@@ -46,7 +62,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  get: <T>(path: string): Promise<T> => request<T>(path),
+  get: <T>(path: string, init?: RequestInit): Promise<T> => request<T>(path, init),
   post: <T>(path: string, body?: unknown): Promise<T> =>
     request<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }),
   patch: <T>(path: string, body?: unknown): Promise<T> =>
