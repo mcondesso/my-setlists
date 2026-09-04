@@ -1,9 +1,11 @@
 """Setlist API application entry point."""
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from src.core.config import settings
 from src.core.rate_limit import limiter
 from src.routers import auth, setlists, song_links, songs, users
 
@@ -13,6 +15,17 @@ app = FastAPI(title="Setlist API")
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Auth is a Bearer token, never a cookie, so no credentials need to cross
+# origins — allow_credentials stays False even though allow_origins is a
+# concrete list (frontend/, or a deployed frontend origin via CORS_ORIGINS).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])

@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     UVICORN_RELOAD: bool
     APP_PORT: int
     DISCOGS_API_TOKEN: str
+    CORS_ORIGINS: str = "http://localhost:5173"
 
     @property
     def database_url(self) -> str:
@@ -25,6 +26,11 @@ class Settings(BaseSettings):
             # Use in-memory sqlite db for tests
             return "sqlite:///:memory:"
         return self.DATABASE_URL
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Return the allowed CORS origins as a list, parsed from a comma-separated string."""
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
 
 # The params are read from .env at runtime
