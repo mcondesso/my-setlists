@@ -24,6 +24,9 @@ npm run dev        # dev server with HMR
 npm run build      # type-checks (svelte-check) then builds to dist/
 npm run check       # svelte-check + tsc, no build
 npm test            # vitest run — unit + component tests, no watch
+npm run test:e2e    # playwright — real browser against the real backend, see e2e/README.md
+npm run lint        # eslint .
+npm run format      # prettier --write .   (format:check for CI)
 npm run preview     # serve the production build locally
 ```
 
@@ -47,7 +50,8 @@ src/
 
 `*.test.ts` files sit next to what they test (e.g. `lib/api.test.ts`,
 `App.svelte.test.ts`). Run with `npm test`; Vitest + `@testing-library/svelte`,
-configured in `vite.config.ts` / `vitest-setup.ts`.
+configured in `vite.config.ts` / `vitest-setup.ts`. `e2e/` is separate —
+Playwright specs, real browser, real backend — see `e2e/README.md`.
 
 ## Auth
 
