@@ -3,6 +3,7 @@
   import { auth, logout } from "./lib/auth.svelte";
   import { fetchMe } from "./lib/backend";
   import { navigate, router } from "./lib/router.svelte";
+  import { startSessionRefresh } from "./lib/session";
   import Login from "./pages/Login.svelte";
   import Register from "./pages/Register.svelte";
   import SetlistDetail from "./pages/SetlistDetail.svelte";
@@ -22,6 +23,11 @@
       }
     }
   });
+
+  // Keeps an active session alive past ACCESS_TOKEN_EXPIRE_MINUTES instead
+  // of hard-logging out mid-use; stopped when App unmounts (never, in
+  // practice, but onMount's returned cleanup keeps this tidy either way).
+  onMount(() => startSessionRefresh());
 
   function handleLogout(): void {
     logout();

@@ -60,6 +60,13 @@ leaves the app in a half-authenticated state. The token then lives in
 request — no cookies, so no CSRF handling is needed. A 401 response clears
 the stored token and the app falls back to the login screen (see `lib/api.ts`).
 
+While the app is open, `lib/session.ts`'s `startSessionRefresh()` calls
+`POST /auth/refresh` every 15 minutes to extend the session — without it, a
+user mid-session would be hard-logged-out after exactly
+`ACCESS_TOKEN_EXPIRE_MINUTES`. There's no separate longer-lived refresh
+token, so this only helps while the current token is still valid; once it's
+actually expired, only logging back in gets you a new one.
+
 ## What's covered
 
 Register, login, list setlists, create a setlist, view one with its songs in
