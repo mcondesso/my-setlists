@@ -15,14 +15,22 @@ export interface SongLink {
   url: string | null;
 }
 
-export interface Song {
-  id: string;
+interface SongBase {
   title: string;
   artist: string;
   duration_ms: number | null;
   album: string | null;
   release_year: number | null;
   thumbnail: string | null;
+}
+
+/** Matches response_model=SongRead — no `links`. What POST/PATCH /songs return. */
+export interface SongRead extends SongBase {
+  id: string;
+}
+
+/** Matches response_model=SongReadWithLinks — what the GET song endpoints return. */
+export interface Song extends SongRead {
   links: SongLink[];
 }
 

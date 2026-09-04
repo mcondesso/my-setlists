@@ -2,7 +2,7 @@
 // out of the page components.
 
 import { api } from "./api";
-import type { DiscogsSearchResult, Setlist, SetlistWithEntries, Song, User } from "./types";
+import type { DiscogsSearchResult, Setlist, SetlistWithEntries, SongRead, User } from "./types";
 
 export function login(email: string, password: string): Promise<{ access_token: string; token_type: string }> {
   const form = new URLSearchParams({ username: email, password });
@@ -15,6 +15,13 @@ export function register(email: string, displayName: string, password: string): 
 
 export function fetchMe(): Promise<User> {
   return api.get("/users/me");
+}
+
+/** Like fetchMe(), but authenticates with an explicit token instead of the
+ * app-wide auth.token — used to validate a freshly issued token before
+ * committing it (see lib/session.ts). */
+export function fetchMeAs(token: string): Promise<User> {
+  return api.get("/users/me", { headers: { Authorization: `Bearer ${token}` } });
 }
 
 export function fetchSetlists(): Promise<Setlist[]> {
@@ -41,7 +48,7 @@ export function searchSongs(query: string): Promise<DiscogsSearchResult[]> {
   return api.get(`/songs/search?q=${encodeURIComponent(query)}`);
 }
 
-export function addSongToSetlist(setlistId: string, result: DiscogsSearchResult): Promise<Song> {
+export function addSongToSetlist(setlistId: string, result: DiscogsSearchResult): Promise<SongRead> {
   return api.post("/songs/", {
     title: result.title,
     artist: result.artist,

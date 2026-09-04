@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { ApiError } from "../lib/api";
-  import { auth, setToken } from "../lib/auth.svelte";
-  import { fetchMe, login } from "../lib/backend";
+  import { errorMessage } from "../lib/api";
+  import { completeLogin } from "../lib/session";
   import { navigate } from "../lib/router.svelte";
 
   let email = $state("");
@@ -14,12 +13,10 @@
     error = "";
     submitting = true;
     try {
-      const { access_token } = await login(email, password);
-      setToken(access_token);
-      auth.user = await fetchMe();
+      await completeLogin(email, password);
       navigate("/setlists");
     } catch (err) {
-      error = err instanceof ApiError ? err.message : "Could not log in.";
+      error = errorMessage(err, "Could not log in.");
     } finally {
       submitting = false;
     }
