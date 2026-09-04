@@ -13,7 +13,12 @@
       try {
         auth.user = await fetchMe();
       } catch {
-        // api.ts already logs out on an invalid/expired token (401).
+        // Couldn't confirm the stored token is still good — for a 401 this
+        // is a no-op (api.ts already logged out), but for any other failure
+        // (network blip, 500) auth.token would otherwise stay set forever
+        // with auth.user permanently null. Log out rather than leave the
+        // app stuck half-authenticated; the user can just log back in.
+        logout();
       }
     }
   });
