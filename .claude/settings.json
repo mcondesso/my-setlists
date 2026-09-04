@@ -3,13 +3,13 @@
   "permissions": {
     "allow": [
       "Bash(python -m pytest:*)",
-      "Bash(backend/.venv/python -m pytest:*)",
+      "Bash(backend/.venv/bin/python -m pytest:*)",
       "Bash(pytest:*)",
       "Bash(ruff check:*)",
       "Bash(ruff format:*)",
-      "Bash(backend/.venv/ruff:*)",
+      "Bash(backend/.venv/bin/ruff:*)",
       "Bash(python -m mypy:*)",
-      "Bash(backend/.venv/mypy:*)",
+      "Bash(backend/.venv/bin/mypy:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
