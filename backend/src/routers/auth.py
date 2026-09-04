@@ -7,8 +7,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
-from src.core.dependencies import authenticate_user
-from src.core.rate_limit import LOGIN_RATE_LIMIT, limiter
+from src.core.dependencies import authenticate_user, get_current_user
+from src.core.rate_limit import LOGIN_RATE_LIMIT, REFRESH_RATE_LIMIT, REGISTER_RATE_LIMIT, limiter
 from src.core.security import create_token, hash_password
 from src.database import get_session
 from src.models.setlist import Setlist
@@ -23,7 +23,9 @@ router = APIRouter()
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit(REGISTER_RATE_LIMIT)
 def register(
+    request: Request,
     user_data: UserCreate,
     session: Annotated[Session, Depends(get_session)],
 ) -> User:
@@ -31,6 +33,7 @@ def register(
     Create a new user account and their library setlist.
 
     Raises HTTP 400 if the email is already registered.
+    Raises HTTP 429 once the per-client attempt limit is exceeded.
     """
     email_taken = HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
@@ -91,4 +94,23 @@ def login(
         )
 
     access_token = create_token(user.id)
+    return Token(access_token=access_token, token_type="bearer")
+
+
+@router.post("/refresh", response_model=Token)
+@limiter.limit(REFRESH_RATE_LIMIT)
+def refresh(
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> Token:
+    """
+    Exchange a still-valid access token for a new one with a fresh expiry.
+
+    Lets a client extend a session (e.g. a periodic silent refresh while the
+    app is open) instead of forcing a full re-login every
+    ACCESS_TOKEN_EXPIRE_MINUTES. Requires the current token to still be
+    valid — there is no separate longer-lived refresh token, so once a token
+    has expired the only way back in is to log in again.
+    """
+    access_token = create_token(current_user.id)
     return Token(access_token=access_token, token_type="bearer")

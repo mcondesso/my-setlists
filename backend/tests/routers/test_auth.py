@@ -4,8 +4,13 @@ import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from src.core.rate_limit import LOGIN_RATE_LIMIT, limiter
-from tests.conftest import AUTH_LOGIN_ENDPOINT, AUTH_REGISTER_ENDPOINT
+from src.core.rate_limit import LOGIN_RATE_LIMIT, REGISTER_RATE_LIMIT, limiter
+from tests.conftest import (
+    AUTH_LOGIN_ENDPOINT,
+    AUTH_REFRESH_ENDPOINT,
+    AUTH_REGISTER_ENDPOINT,
+    USERS_ME_ENDPOINT,
+)
 
 
 def test_register_success(client: TestClient):
@@ -118,3 +123,45 @@ def test_login_is_rate_limited(client: TestClient, rate_limiting_enabled):
 
     assert statuses[:limit] == [status.HTTP_401_UNAUTHORIZED] * limit
     assert statuses[limit] == status.HTTP_429_TOO_MANY_REQUESTS
+
+
+def test_register_is_rate_limited(client: TestClient, rate_limiting_enabled):
+    """After REGISTER_RATE_LIMIT attempts the endpoint returns 429."""
+    limit = int(REGISTER_RATE_LIMIT.split("/")[0])
+
+    statuses = [
+        client.post(
+            AUTH_REGISTER_ENDPOINT,
+            json={
+                "email": f"spam{i}@example.com",
+                "display_name": "Spam",
+                "password": "securepassword123",
+            },
+        ).status_code
+        for i in range(limit + 1)
+    ]
+
+    assert statuses[:limit] == [status.HTTP_201_CREATED] * limit
+    assert statuses[limit] == status.HTTP_429_TOO_MANY_REQUESTS
+
+
+def test_refresh_returns_a_new_token(authenticated_client: TestClient):
+    """A valid token can be exchanged for a new one."""
+    response = authenticated_client.post(AUTH_REFRESH_ENDPOINT)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["token_type"] == "bearer"
+    new_token = response.json()["access_token"]
+
+    # The new token itself authenticates.
+    me = authenticated_client.get(
+        USERS_ME_ENDPOINT, headers={"Authorization": f"Bearer {new_token}"}
+    )
+    assert me.status_code == status.HTTP_200_OK
+
+
+def test_refresh_requires_authentication(client: TestClient):
+    """Refreshing without a token is rejected like any other protected route."""
+    response = client.post(AUTH_REFRESH_ENDPOINT)
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
