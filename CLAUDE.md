@@ -24,7 +24,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Auth between the two: the backend issues a JWT (`POST /auth/login`); the
   frontend stores it in `localStorage` and sends it as `Authorization: Bearer`
-  — no cookies, no CSRF handling needed on either side.
+  — no cookies, no CSRF handling needed on either side. While a tab stays
+  open, the frontend calls `POST /auth/refresh` every 15 minutes
+  (`frontend/src/lib/session.ts`) to extend the session past the backend's
+  `ACCESS_TOKEN_EXPIRE_MINUTES` — a change to one side of that contract
+  (the endpoint's shape, or how often the frontend calls it) affects the other.
 - CORS: `backend/src/core/config.py` has a `CORS_ORIGINS` setting (default
   `http://localhost:5173`, comma-separated for more) applied via
   `CORSMiddleware` in `backend/src/app.py`. Add the frontend's deployed origin

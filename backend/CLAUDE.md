@@ -116,9 +116,13 @@ running `PRAGMA foreign_keys=ON`. Keep both sides in sync when adding relationsh
 OAuth2 password flow with JWT (HS256, `src/core/security.py`). Token `sub` claim is the
 user's UUID string. `get_current_user` (in `src/core/dependencies.py`) is the auth
 dependency for protected routes. `/auth/login` takes **form data**
-(`OAuth2PasswordRequestForm`); `/auth/register` takes JSON. Passwords hashed with
-`pwdlib` (argon2). `/auth/login` is rate-limited via `slowapi` (`src/core/rate_limit.py`),
-which is disabled when `ENVIRONMENT=test`.
+(`OAuth2PasswordRequestForm`); `/auth/register` takes JSON. `/auth/refresh` (protected,
+takes no body) exchanges a still-valid token for a new one with a fresh expiry — there's
+no separate longer-lived refresh token, so this can't revive an already-expired one; the
+frontend calls it periodically to keep an open session alive past
+`ACCESS_TOKEN_EXPIRE_MINUTES`. Passwords hashed with `pwdlib` (argon2). All three
+endpoints (`login`, `register`, `refresh`) are rate-limited via `slowapi`
+(`src/core/rate_limit.py`), which is disabled when `ENVIRONMENT=test`.
 
 ### Routers
 
@@ -139,15 +143,16 @@ value in the path (one link per song per platform).
 
 ## Tests
 
-- `tests/models/` and `tests/tasks/` call functions directly with a `Session`;
-  `tests/routers/` drives the app through `TestClient` (via the `authenticated_client`
-  fixture) and is where `response_model` serialization is covered.
+- `tests/models/`, `tests/tasks/`, and `tests/core/` call functions directly
+  (with a `Session` where one's needed); `tests/routers/` drives the app through
+  `TestClient` (via the `authenticated_client` fixture) and is where `response_model`
+  serialization and middleware (CORS, rate limiting) are covered.
 - `conftest.py` forces `ENVIRONMENT=test`, uses one in-memory SQLite engine
   (`StaticPool`) recreated per test, and disables the rate limiter and YouTube lookup.
 
 ## Notes
 
-- Deferred follow-ups (rate-limit scale-out, offset pagination) are tracked in
-  [../docs/backlog.md](../docs/backlog.md).
+- Deferred follow-ups (rate-limit scale-out, session-refresh design, offset
+  pagination) are tracked in [../docs/backlog.md](../docs/backlog.md).
 - The committed `../docs/my-setlists-schema.png` is generated from dbdiagram.io (link in
   `README.md`) and is not auto-updated.

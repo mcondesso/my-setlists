@@ -73,8 +73,8 @@ actually expired, only logging back in gets you a new one.
 
 ## What's covered
 
-Register, login, list setlists, create a setlist, view one with its songs in
-order, search Discogs and add a result to a setlist, remove a song. Song
-links, editing a setlist's name/visibility, and the user's own library
-setlist have no dedicated UI yet — the API supports all of it; only the
-screens are missing.
+Register, login, list setlists (paginated, "Load more"), create a setlist,
+view one with its songs in order, search Discogs and add a result to a
+setlist, remove a song. Song links, editing a setlist's name/visibility, and
+the user's own library setlist have no dedicated UI yet — the API supports
+all of it; only the screens are missing.
