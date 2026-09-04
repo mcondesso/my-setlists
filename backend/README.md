@@ -51,10 +51,11 @@ python -m pytest tests/routers/test_auth.py -v
 python -m pytest tests/models/test_setlist.py::test_name -v
 ```
 
-Tests are split into `tests/models/` (direct DB/model behaviour) and
-`tests/routers/` (endpoint behaviour via `TestClient`). `tests/conftest.py`
-forces `ENVIRONMENT=test`, so every run uses a fresh in-memory SQLite database
-and no external services are needed.
+Tests are split into `tests/models/` (direct DB/model behaviour), `tests/tasks/`
+(background jobs), `tests/core/` (config/settings), and `tests/routers/` (endpoint
+behaviour, including middleware like CORS and rate limiting, via `TestClient`).
+`tests/conftest.py` forces `ENVIRONMENT=test`, so every run uses a fresh in-memory
+SQLite database and no external services are needed.
 
 ## Architecture
 
