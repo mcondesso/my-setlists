@@ -32,8 +32,15 @@
   </label>
   <label>
     Password
-    <input type="password" bind:value={password} required autocomplete="current-password" />
+    <input
+      type="password"
+      bind:value={password}
+      required
+      autocomplete="current-password"
+    />
   </label>
-  <button type="submit" disabled={submitting}>{submitting ? "Logging in…" : "Log in"}</button>
+  <button type="submit" disabled={submitting}
+    >{submitting ? "Logging in…" : "Log in"}</button
+  >
   <p class="hint">No account? <a href="#/register">Register</a></p>
 </form>

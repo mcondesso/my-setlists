@@ -39,8 +39,16 @@
   </label>
   <label>
     Password
-    <input type="password" bind:value={password} required minlength="8" autocomplete="new-password" />
+    <input
+      type="password"
+      bind:value={password}
+      required
+      minlength="8"
+      autocomplete="new-password"
+    />
   </label>
-  <button type="submit" disabled={submitting}>{submitting ? "Creating account…" : "Create account"}</button>
+  <button type="submit" disabled={submitting}
+    >{submitting ? "Creating account…" : "Create account"}</button
+  >
   <p class="hint">Already have an account? <a href="#/login">Log in</a></p>
 </form>

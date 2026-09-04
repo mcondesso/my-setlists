@@ -1,6 +1,8 @@
 <script lang="ts">
-  let { ownerDisplayName, isPublic = false }: { ownerDisplayName: string; isPublic?: boolean } =
-    $props();
+  let {
+    ownerDisplayName,
+    isPublic = false,
+  }: { ownerDisplayName: string; isPublic?: boolean } = $props();
 </script>
 
 <p class="meta">

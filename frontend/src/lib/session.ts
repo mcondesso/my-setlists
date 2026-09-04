@@ -13,7 +13,10 @@ import { fetchMeAs, login } from "./backend";
  * corresponding auth.user. App.svelte's routing only switches away from
  * Login/Register once both are known good.
  */
-export async function completeLogin(email: string, password: string): Promise<void> {
+export async function completeLogin(
+  email: string,
+  password: string,
+): Promise<void> {
   const { access_token } = await login(email, password);
   const user = await fetchMeAs(access_token);
   setToken(access_token);

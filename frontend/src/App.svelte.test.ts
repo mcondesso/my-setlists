@@ -39,7 +39,9 @@ describe("App", () => {
     render(App);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Setlists" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Setlists" }),
+      ).toBeInTheDocument();
     });
     expect(screen.getByText("Ada")).toBeInTheDocument();
   });
@@ -54,7 +56,9 @@ describe("App", () => {
     render(App);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Log in" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Log in" }),
+      ).toBeInTheDocument();
     });
     expect(auth.token).toBeNull();
   });
