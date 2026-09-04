@@ -13,15 +13,21 @@ test("register, create a setlist, log out, and log back in to find it", async ({
 
   await page.goto("/");
 
-  await page.getByRole("link", { name: "Register" }).click();
+  // Both the header nav and the login form's hint text link to #/register.
+  await page
+    .getByRole("navigation")
+    .getByRole("link", { name: "Register" })
+    .click();
   await page.getByLabel("Display name").fill("E2E Tester");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
 
   // Register auto-logs in (completeLogin) and lands on the setlists screen.
+  // Registering also creates the account's Library setlist, whose card also
+  // shows the display name ("by E2E Tester") — match the header's span only.
   await expect(page.getByRole("heading", { name: "Setlists" })).toBeVisible();
-  await expect(page.getByText("E2E Tester")).toBeVisible();
+  await expect(page.getByText("E2E Tester", { exact: true })).toBeVisible();
 
   await page.getByLabel("Name", { exact: true }).fill(setlistName);
   await page.getByRole("button", { name: "Create" }).click();
