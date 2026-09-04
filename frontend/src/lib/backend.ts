@@ -43,8 +43,19 @@ export function fetchMeAs(token: string): Promise<User> {
   });
 }
 
-export function fetchSetlists(): Promise<Setlist[]> {
-  return api.get("/setlists/");
+/** Exchange the current (still-valid) token for a new one with a fresh expiry. */
+export function refreshToken(): Promise<{
+  access_token: string;
+  token_type: string;
+}> {
+  return api.post("/auth/refresh");
+}
+
+export function fetchSetlists(
+  limit: number,
+  offset: number,
+): Promise<Setlist[]> {
+  return api.get(`/setlists/?limit=${limit}&offset=${offset}`);
 }
 
 export function fetchSetlist(id: string): Promise<SetlistWithEntries> {
