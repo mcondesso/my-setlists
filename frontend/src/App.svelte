@@ -50,7 +50,7 @@
   </nav>
 </header>
 
-<main>
+<main class:auth-layout={!auth.token}>
   {#if !auth.token}
     {#if router.path === "/register"}
       <Register />

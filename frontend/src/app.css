@@ -26,6 +26,15 @@ body {
   color: var(--text);
 }
 
+/* Svelte mounts App into #app (see main.ts) — body itself has no other
+   children, so this is where the full-height flex column layout has to
+   live for header + main to fill the viewport between them. */
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 header {
   display: flex;
   align-items: center;
@@ -64,8 +73,19 @@ header nav a:hover {
 
 main {
   max-width: 720px;
+  width: 100%;
   margin: 0 auto;
   padding: 1.5rem;
+  flex: 1;
+}
+
+/* Login/Register: one card, nothing else on the page — center it instead of
+   letting it hug the top-left of the (otherwise list-oriented) content column. */
+main.auth-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 h1 {
