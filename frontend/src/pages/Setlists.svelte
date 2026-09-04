@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { ApiError } from "../lib/api";
+  import { errorMessage } from "../lib/api";
   import { createSetlist, fetchSetlists } from "../lib/backend";
   import type { Setlist } from "../lib/types";
+  import OwnerBadge from "../components/OwnerBadge.svelte";
 
   let setlists = $state<Setlist[]>([]);
   let loading = $state(true);
@@ -18,7 +19,7 @@
     try {
       setlists = await fetchSetlists();
     } catch (err) {
-      error = err instanceof ApiError ? err.message : "Could not load setlists.";
+      error = errorMessage(err, "Could not load setlists.");
     } finally {
       loading = false;
     }
@@ -32,17 +33,20 @@
     creating = true;
     error = "";
     try {
-      await createSetlist({
+      const created = await createSetlist({
         name: newName.trim(),
         description: newDescription.trim() || undefined,
         is_public: newIsPublic,
       });
+      // GET /setlists/ orders the current user's own setlists first, newest
+      // first — prepending matches that without a round-trip to re-fetch
+      // everything we already have.
+      setlists = [created, ...setlists];
       newName = "";
       newDescription = "";
       newIsPublic = false;
-      await load();
     } catch (err) {
-      error = err instanceof ApiError ? err.message : "Could not create setlist.";
+      error = errorMessage(err, "Could not create setlist.");
     } finally {
       creating = false;
     }
@@ -83,10 +87,7 @@
             {#if setlist.is_library}<span class="badge">Library</span>{/if}
           </h3>
           {#if setlist.description}<p>{setlist.description}</p>{/if}
-          <p class="meta">
-            by {setlist.owner_display_name}
-            {#if setlist.is_public}<span class="badge">Public</span>{/if}
-          </p>
+          <OwnerBadge ownerDisplayName={setlist.owner_display_name} isPublic={setlist.is_public} />
         </a>
       </li>
     {/each}
