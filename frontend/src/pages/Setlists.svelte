@@ -5,8 +5,15 @@
   import type { Setlist } from "../lib/types";
   import OwnerBadge from "../components/OwnerBadge.svelte";
 
+  const PAGE_SIZE = 20;
+
   let setlists = $state<Setlist[]>([]);
+  let offset = $state(0);
+  // The API doesn't return a total count; a page shorter than PAGE_SIZE is
+  // what tells us there's nothing more to load.
+  let hasMore = $state(true);
   let loading = $state(true);
+  let loadingMore = $state(false);
   let error = $state("");
 
   let newName = $state("");
@@ -14,18 +21,33 @@
   let newIsPublic = $state(false);
   let creating = $state(false);
 
-  async function load(): Promise<void> {
-    loading = true;
+  onMount(async () => {
     try {
-      setlists = await fetchSetlists();
+      const page = await fetchSetlists(PAGE_SIZE, 0);
+      setlists = page;
+      offset = page.length;
+      hasMore = page.length === PAGE_SIZE;
     } catch (err) {
       error = errorMessage(err, "Could not load setlists.");
     } finally {
       loading = false;
     }
-  }
+  });
 
-  onMount(load);
+  async function loadMore(): Promise<void> {
+    loadingMore = true;
+    error = "";
+    try {
+      const page = await fetchSetlists(PAGE_SIZE, offset);
+      setlists = [...setlists, ...page];
+      offset += page.length;
+      hasMore = page.length === PAGE_SIZE;
+    } catch (err) {
+      error = errorMessage(err, "Could not load more setlists.");
+    } finally {
+      loadingMore = false;
+    }
+  }
 
   async function handleCreate(event: SubmitEvent): Promise<void> {
     event.preventDefault();
@@ -40,8 +62,10 @@
       });
       // GET /setlists/ orders the current user's own setlists first, newest
       // first — prepending matches that without a round-trip to re-fetch
-      // everything we already have.
+      // everything we already have. Bump offset so the next "Load more"
+      // page boundary still lines up with what's now on screen.
       setlists = [created, ...setlists];
+      offset += 1;
       newName = "";
       newDescription = "";
       newIsPublic = false;
@@ -97,4 +121,10 @@
       </li>
     {/each}
   </ul>
+
+  {#if hasMore}
+    <button class="ghost" onclick={loadMore} disabled={loadingMore}>
+      {loadingMore ? "Loading…" : "Load more"}
+    </button>
+  {/if}
 {/if}
