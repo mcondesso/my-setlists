@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { ApiError } from "../lib/api";
+  import { errorMessage } from "../lib/api";
   import { addSongToSetlist, fetchSetlist, removeSongFromSetlist, searchSongs } from "../lib/backend";
   import type { DiscogsSearchResult, SetlistWithEntries } from "../lib/types";
+  import OwnerBadge from "../components/OwnerBadge.svelte";
 
   let { id }: { id: string } = $props();
 
@@ -14,15 +15,25 @@
   let searching = $state(false);
   let addingId = $state<string | null>(null);
 
+  // Bumped on every load() call; a call whose result arrives after a newer
+  // one has started is discarded instead of overwriting fresher data (can
+  // happen if the user navigates from one setlist to another quickly and
+  // the requests resolve out of order).
+  let loadToken = 0;
+
   async function load(setlistId: string): Promise<void> {
+    const thisLoad = ++loadToken;
     loading = true;
     error = "";
     try {
-      setlist = await fetchSetlist(setlistId);
+      const result = await fetchSetlist(setlistId);
+      if (thisLoad !== loadToken) return;
+      setlist = result;
     } catch (err) {
-      error = err instanceof ApiError ? err.message : "Could not load setlist.";
+      if (thisLoad !== loadToken) return;
+      error = errorMessage(err, "Could not load setlist.");
     } finally {
-      loading = false;
+      if (thisLoad === loadToken) loading = false;
     }
   }
 
@@ -36,9 +47,11 @@
   async function handleRemove(songId: string): Promise<void> {
     try {
       await removeSongFromSetlist(id, songId);
-      await load(id);
+      if (setlist) {
+        setlist.entries = setlist.entries.filter((entry) => entry.song_id !== songId);
+      }
     } catch (err) {
-      error = err instanceof ApiError ? err.message : "Could not remove song.";
+      error = errorMessage(err, "Could not remove song.");
     }
   }
 
@@ -50,7 +63,7 @@
     try {
       results = await searchSongs(query.trim());
     } catch (err) {
-      error = err instanceof ApiError ? err.message : "Search failed.";
+      error = errorMessage(err, "Search failed.");
     } finally {
       searching = false;
     }
@@ -63,9 +76,11 @@
       await addSongToSetlist(id, result);
       results = [];
       query = "";
+      // The create response doesn't carry the entry's position/added_at or
+      // the song's links, so re-fetch rather than fabricate an entry.
       await load(id);
     } catch (err) {
-      error = err instanceof ApiError ? err.message : "Could not add song.";
+      error = errorMessage(err, "Could not add song.");
     } finally {
       addingId = null;
     }
@@ -81,10 +96,7 @@
 {:else}
   <h1>{setlist.name}</h1>
   {#if setlist.description}<p>{setlist.description}</p>{/if}
-  <p class="meta">
-    by {setlist.owner_display_name}
-    {#if setlist.is_public}<span class="badge">Public</span>{/if}
-  </p>
+  <OwnerBadge ownerDisplayName={setlist.owner_display_name} isPublic={setlist.is_public} />
 
   {#if error}<p class="error">{error}</p>{/if}
 
