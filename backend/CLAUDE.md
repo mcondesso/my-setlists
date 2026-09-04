@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 FastAPI + SQLModel REST API for building and sharing musical setlists. Users register,
 create setlists, add globally-shared songs to them, and attach external platform links
-(Discogs, YouTube, etc.) to songs. API only, browsable at `/docs`.
+(Discogs, YouTube, etc.) to songs. Browsable at `/docs`; the UI lives separately in
+[`../frontend/`](../frontend/README.md) and talks to this API only over HTTP (JWT bearer
+auth, CORS-enabled — see Configuration below).
 
 This is the `backend/` package of the repo; run every command below from this
 directory (its `.venv/`, `requirements.txt`, `ruff.toml`, `alembic.ini` are here).
@@ -44,14 +46,18 @@ format check, ruff lint, pytest, and an Alembic drift check (`alembic upgrade he
 
 ## Configuration
 
-`src/core/config.py` defines a pydantic-settings `Settings` loaded from `.env`. All
-fields are required (no defaults except `ENVIRONMENT`), so a fresh clone needs
-`cp .env.example .env` before anything runs. The `settings.database_url` **property**
-— not the raw `DATABASE_URL` field — is what the engine uses: when
+`src/core/config.py` defines a pydantic-settings `Settings` loaded from `.env`. Most
+fields are required (no defaults except `ENVIRONMENT` and `CORS_ORIGINS`), so a fresh
+clone needs `cp .env.example .env` before anything runs. The `settings.database_url`
+**property** — not the raw `DATABASE_URL` field — is what the engine uses: when
 `ENVIRONMENT == "test"` it returns `sqlite:///:memory:`, otherwise `DATABASE_URL`.
 `.env.example` ships `ENVIRONMENT=test`, so a `.env` copied straight from it runs
 `python main.py` against throwaway in-memory SQLite until you set
 `ENVIRONMENT=development`.
+
+`CORS_ORIGINS` (default `http://localhost:5173`, comma-separated for more) is parsed by
+the `settings.cors_origins` property and applied via `CORSMiddleware` in `src/app.py`.
+Auth is a Bearer JWT rather than a cookie, so `allow_credentials` stays `False`.
 
 ## Architecture
 
@@ -141,7 +147,7 @@ value in the path (one link per song per platform).
 
 ## Notes
 
-- Deferred follow-ups (CORS, rate-limit scale-out) are tracked in
+- Deferred follow-ups (rate-limit scale-out, offset pagination) are tracked in
   [../docs/backlog.md](../docs/backlog.md).
 - The committed `../docs/my-setlists-schema.png` is generated from dbdiagram.io (link in
   `README.md`) and is not auto-updated.
