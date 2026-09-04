@@ -17,10 +17,12 @@ from slowapi.util import get_remote_address
 from src.core.config import settings
 
 # Disabled under the test environment so the suite is not throttled; the
-# rate-limit behaviour itself is covered by test_login_is_rate_limited.
+# rate-limit behaviour itself is covered by dedicated tests that re-enable it.
 limiter = Limiter(
     key_func=get_remote_address,
     enabled=settings.ENVIRONMENT != "test",
 )
 
 LOGIN_RATE_LIMIT = "5/minute"
+REGISTER_RATE_LIMIT = "5/minute"
+REFRESH_RATE_LIMIT = "30/minute"

@@ -19,6 +19,7 @@ from src.database import get_session
 
 AUTH_LOGIN_ENDPOINT = "/auth/login"
 AUTH_REGISTER_ENDPOINT = "/auth/register"
+AUTH_REFRESH_ENDPOINT = "/auth/refresh"
 USERS_ME_ENDPOINT = "/users/me"
 
 
