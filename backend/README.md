@@ -12,10 +12,15 @@
    ```bash
    pip install -r requirements.txt
    ```
-4. Copy the example environment file and fill in the database credentials:
+4. Copy the example environment file:
    ```bash
    cp .env.example .env
    ```
+   Its `DATABASE_URL` already matches `docker-compose.yml`'s default Postgres
+   credentials, so no edits are needed for local dev — except `ENVIRONMENT`,
+   which ships set to `test` (in-memory SQLite, no Postgres needed) rather
+   than `development`. Change it if you want `python main.py` to actually
+   talk to Postgres.
 
 ## Running the application
 
