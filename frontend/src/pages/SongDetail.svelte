@@ -103,11 +103,37 @@
       {#each song.links.filter((link) => link.url) as link (link.platform)}
         <li>
           <a
-            class="card"
+            class="card link-card"
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
           >
+            {#if link.platform === "youtube"}
+              <svg class="platform-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect
+                  x="1"
+                  y="4"
+                  width="22"
+                  height="16"
+                  rx="4"
+                  fill="#FF0000"
+                />
+                <path d="M10 8.5l6 3.5-6 3.5z" fill="#fff" />
+              </svg>
+            {:else if link.platform === "discogs"}
+              <svg class="platform-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" fill="#333" />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="6.5"
+                  fill="none"
+                  stroke="#fff"
+                  stroke-width="1.2"
+                />
+                <circle cx="12" cy="12" r="2" fill="#fff" />
+              </svg>
+            {/if}
             {linkLabels[link.platform] ?? link.platform}
           </a>
         </li>
