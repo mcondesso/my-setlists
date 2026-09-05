@@ -219,4 +219,45 @@ describe("SetlistDetail", () => {
     await waitFor(() => screen.getByRole("heading", { name: "My Set" }));
     expect(screen.getByText(/3:05/)).toBeInTheDocument();
   });
+
+  it("shows the song count and total playback time", async () => {
+    vi.mocked(fetchSetlist).mockResolvedValue(
+      setlist("a", "My Set", {
+        entries: [
+          {
+            ...songEntry("s1", "One", { duration_ms: 10 * 60 * 1000 }),
+            position: 1,
+          },
+          {
+            ...songEntry("s2", "Two", { duration_ms: 15 * 60 * 1000 }),
+            position: 2,
+          },
+        ],
+      }),
+    );
+
+    render(SetlistDetail, { props: { id: "a" } });
+
+    await waitFor(() => screen.getByRole("heading", { name: "My Set" }));
+    expect(screen.getByText(/2 songs · 25 min/)).toBeInTheDocument();
+  });
+
+  it("marks the total as a lower bound when some songs have no known length", async () => {
+    vi.mocked(fetchSetlist).mockResolvedValue(
+      setlist("a", "My Set", {
+        entries: [
+          {
+            ...songEntry("s1", "One", { duration_ms: 10 * 60 * 1000 }),
+            position: 1,
+          },
+          { ...songEntry("s2", "Two", { duration_ms: null }), position: 2 },
+        ],
+      }),
+    );
+
+    render(SetlistDetail, { props: { id: "a" } });
+
+    await waitFor(() => screen.getByRole("heading", { name: "My Set" }));
+    expect(screen.getByText(/2 songs · over 10 min/)).toBeInTheDocument();
+  });
 });

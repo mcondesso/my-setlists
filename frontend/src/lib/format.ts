@@ -12,3 +12,16 @@ export function formatDuration(ms: number | null): string | null {
   }
   return `${minutes}:${paddedSeconds}`;
 }
+
+/** Formats a total playback time as e.g. "1 hr 23 min", "45 min", or "under a minute". */
+export function formatTotalDuration(ms: number): string {
+  const totalMinutes = Math.round(ms / 60000);
+  if (totalMinutes < 1) return "under a minute";
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const parts = [];
+  if (hours > 0) parts.push(`${hours} hr`);
+  if (minutes > 0) parts.push(`${minutes} min`);
+  return parts.join(" ");
+}

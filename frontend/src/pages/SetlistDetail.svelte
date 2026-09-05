@@ -7,13 +7,25 @@
     searchSongs,
     updateSetlist,
   } from "../lib/backend";
-  import { formatDuration } from "../lib/format";
+  import { formatDuration, formatTotalDuration } from "../lib/format";
   import type { DiscogsSearchResult, SetlistWithEntries } from "../lib/types";
   import OwnerBadge from "../components/OwnerBadge.svelte";
 
   let { id }: { id: string } = $props();
 
   let setlist = $state<SetlistWithEntries | null>(null);
+
+  const songCount = $derived(setlist?.entries.length ?? 0);
+  const knownDurationMs = $derived(
+    setlist?.entries.reduce(
+      (total, entry) => total + (entry.song.duration_ms ?? 0),
+      0,
+    ) ?? 0,
+  );
+  // Songs whose length Discogs didn't have — the total is a lower bound then.
+  const missingDurations = $derived(
+    setlist?.entries.some((entry) => entry.song.duration_ms === null) ?? false,
+  );
   let loading = $state(true);
   let error = $state("");
 
@@ -177,6 +189,18 @@
     ownerDisplayName={setlist.owner_display_name}
     isPublic={setlist.is_public}
   />
+
+  {#if songCount > 0}
+    <p class="meta">
+      {songCount}
+      {songCount === 1 ? "song" : "songs"}
+      {#if knownDurationMs > 0}
+        · {missingDurations ? "over " : ""}{formatTotalDuration(
+          knownDurationMs,
+        )}
+      {/if}
+    </p>
+  {/if}
 
   {#if error}<p class="error">{error}</p>{/if}
 
