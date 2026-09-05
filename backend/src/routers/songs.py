@@ -114,6 +114,7 @@ def search_songs(
             release_year=r.release_year,
             discogs_url=r.discogs_url,
             thumbnail=r.thumbnail,
+            duration_ms=r.duration_ms,
         )
         for r in results
     ]

@@ -185,3 +185,46 @@ def test_prefers_the_artist_and_title_match_over_a_similar_bare_title(
     assert len(results) == 1
     assert results[0].artist == "Darkside"
     assert results[0].title == "Heart"
+
+
+def test_parses_the_track_duration_into_milliseconds(monkeypatch) -> None:
+    monkeypatch.setattr(
+        discogs.httpx,
+        "get",
+        _fake_get_factory(
+            search_results=[{"id": 1, "title": "Artist - Album", "uri": "/master/1"}],
+            masters={
+                1: [
+                    {
+                        "position": "A1",
+                        "type_": "track",
+                        "title": "Song",
+                        "duration": "3:45",
+                    }
+                ]
+            },
+        ),
+    )
+
+    results = discogs.search_discogs("Song", limit=1)
+
+    assert results[0].duration_ms == (3 * 60 + 45) * 1000
+
+
+@pytest.mark.parametrize("duration", [None, "", "not-a-duration"])
+def test_missing_or_unparseable_duration_is_none(monkeypatch, duration) -> None:
+    track: dict = {"position": "A1", "type_": "track", "title": "Song"}
+    if duration is not None:
+        track["duration"] = duration
+    monkeypatch.setattr(
+        discogs.httpx,
+        "get",
+        _fake_get_factory(
+            search_results=[{"id": 1, "title": "Artist - Album", "uri": "/master/1"}],
+            masters={1: [track]},
+        ),
+    )
+
+    results = discogs.search_discogs("Song", limit=1)
+
+    assert results[0].duration_ms is None

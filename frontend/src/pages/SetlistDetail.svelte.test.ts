@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SetlistWithEntries } from "../lib/types";
+import type { SetlistEntry, SetlistWithEntries } from "../lib/types";
 
 vi.mock("../lib/backend", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../lib/backend")>();
@@ -30,6 +30,30 @@ function setlist(
     created_at: "now",
     entries: [],
     ...overrides,
+  };
+}
+
+function songEntry(
+  songId: string,
+  title: string,
+  overrides: Partial<SetlistEntry["song"]> = {},
+): SetlistEntry {
+  return {
+    setlist_id: "a",
+    song_id: songId,
+    position: 1,
+    added_at: "now",
+    song: {
+      id: songId,
+      title,
+      artist: "Artist",
+      duration_ms: null,
+      album: null,
+      release_year: null,
+      thumbnail: null,
+      links: [],
+      ...overrides,
+    },
   };
 }
 
@@ -127,24 +151,7 @@ describe("SetlistDetail", () => {
       setlist("a", "Someone Else's Set", {
         is_owner: false,
         is_public: true,
-        entries: [
-          {
-            setlist_id: "a",
-            song_id: "s1",
-            position: 1,
-            added_at: "now",
-            song: {
-              id: "s1",
-              title: "Song",
-              artist: "Artist",
-              duration_ms: null,
-              album: null,
-              release_year: null,
-              thumbnail: null,
-              links: [],
-            },
-          },
-        ],
+        entries: [songEntry("s1", "Song")],
       }),
     );
 
@@ -198,5 +205,18 @@ describe("SetlistDetail", () => {
     expect(
       screen.queryByRole("heading", { name: "Setlist A" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows each song's duration in the list", async () => {
+    vi.mocked(fetchSetlist).mockResolvedValue(
+      setlist("a", "My Set", {
+        entries: [songEntry("s1", "Song", { duration_ms: 185000 })],
+      }),
+    );
+
+    render(SetlistDetail, { props: { id: "a" } });
+
+    await waitFor(() => screen.getByRole("heading", { name: "My Set" }));
+    expect(screen.getByText(/3:05/)).toBeInTheDocument();
   });
 });

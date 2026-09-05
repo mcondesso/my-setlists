@@ -18,3 +18,4 @@ class DiscogsSearchResultRead(BaseModel):
     release_year: int | None
     discogs_url: str | None
     thumbnail: str | None
+    duration_ms: int | None

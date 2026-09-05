@@ -7,6 +7,7 @@
     searchSongs,
     updateSetlist,
   } from "../lib/backend";
+  import { formatDuration } from "../lib/format";
   import type { DiscogsSearchResult, SetlistWithEntries } from "../lib/types";
   import OwnerBadge from "../components/OwnerBadge.svelte";
 
@@ -189,7 +190,10 @@
           <a href={`#/songs/${entry.song.id}`}
             ><strong>{entry.song.title}</strong></a
           >
-          <span>{entry.song.artist}</span>
+          <span
+            >{entry.song.artist}{#if formatDuration(entry.song.duration_ms)}
+              · {formatDuration(entry.song.duration_ms)}{/if}</span
+          >
         </div>
         {#if setlist.is_owner}
           <button class="ghost" onclick={() => handleRemove(entry.song_id)}
@@ -226,7 +230,8 @@
               <strong>{result.title}</strong>
               <span
                 >{result.artist}{#if result.release_year}
-                  · {result.release_year}{/if}</span
+                  · {result.release_year}{/if}{#if formatDuration(result.duration_ms)}
+                  · {formatDuration(result.duration_ms)}{/if}</span
               >
             </div>
             <button
