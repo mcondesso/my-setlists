@@ -57,11 +57,12 @@ class SetlistRead(SetlistBase):
 
     id: UUID
     owner_display_name: str
+    is_owner: bool
     is_library: bool
     created_at: datetime
 
     @classmethod
-    def from_setlist(cls, setlist: "Setlist") -> "SetlistRead":
+    def from_setlist(cls, setlist: "Setlist", current_user_id: UUID) -> "SetlistRead":
         """Build a SetlistRead from a Setlist ORM object."""
         return cls(
             id=setlist.id,
@@ -71,6 +72,7 @@ class SetlistRead(SetlistBase):
             is_library=setlist.is_library,
             created_at=setlist.created_at,
             owner_display_name=setlist.user.display_name,
+            is_owner=setlist.user_id == current_user_id,
         )
 
 
@@ -127,6 +129,7 @@ class SetlistReadWithEntries(SQLModel):
 
     id: UUID
     owner_display_name: str
+    is_owner: bool
     name: str
     description: str | None
     is_library: bool
@@ -135,7 +138,7 @@ class SetlistReadWithEntries(SQLModel):
     entries: list[SetlistEntryReadWithSong] = []
 
     @classmethod
-    def from_setlist(cls, setlist: "Setlist") -> "SetlistReadWithEntries":
+    def from_setlist(cls, setlist: "Setlist", current_user_id: UUID) -> "SetlistReadWithEntries":
         """Build a SetlistReadWithEntries from a Setlist ORM object."""
         return cls(
             id=setlist.id,
@@ -145,5 +148,6 @@ class SetlistReadWithEntries(SQLModel):
             is_library=setlist.is_library,
             created_at=setlist.created_at,
             owner_display_name=setlist.user.display_name,
+            is_owner=setlist.user_id == current_user_id,
             entries=sorted(setlist.entries, key=lambda entry: entry.position),
         )

@@ -50,6 +50,7 @@ export interface Setlist {
   is_public: boolean;
   is_library: boolean;
   owner_display_name: string;
+  is_owner: boolean;
   created_at: string;
 }
 

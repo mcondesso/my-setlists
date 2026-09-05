@@ -21,6 +21,7 @@ function makeSetlists(count: number, startAt: number): Setlist[] {
     is_public: false,
     is_library: false,
     owner_display_name: "Ada",
+    is_owner: true,
     created_at: "now",
   }));
 }

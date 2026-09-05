@@ -26,6 +26,7 @@ function setlist(
     is_public: false,
     is_library: false,
     owner_display_name: "Ada",
+    is_owner: true,
     created_at: "now",
     entries: [],
     ...overrides,
@@ -48,6 +49,7 @@ describe("SetlistDetail", () => {
       is_public: false,
       is_library: false,
       owner_display_name: "Ada",
+      is_owner: true,
       created_at: "now",
     });
 
@@ -83,6 +85,7 @@ describe("SetlistDetail", () => {
       is_public: false,
       is_library: false,
       owner_display_name: "Ada",
+      is_owner: true,
       created_at: "now",
     });
 
@@ -114,6 +117,49 @@ describe("SetlistDetail", () => {
     expect(
       screen.queryByRole("button", { name: "Edit" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("does not offer editing, adding, or removing on someone else's public setlist", async () => {
+    // Regression test: these actions all call owner-only endpoints, so a
+    // non-owner viewing a public setlist must not be shown UI that would
+    // just 403 on submit.
+    vi.mocked(fetchSetlist).mockResolvedValue(
+      setlist("a", "Someone Else's Set", {
+        is_owner: false,
+        is_public: true,
+        entries: [
+          {
+            setlist_id: "a",
+            song_id: "s1",
+            position: 1,
+            added_at: "now",
+            song: {
+              id: "s1",
+              title: "Song",
+              artist: "Artist",
+              duration_ms: null,
+              album: null,
+              release_year: null,
+              thumbnail: null,
+              links: [],
+            },
+          },
+        ],
+      }),
+    );
+
+    render(SetlistDetail, { props: { id: "a" } });
+    await waitFor(() =>
+      screen.getByRole("heading", { name: "Someone Else's Set" }),
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Edit" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Remove" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Search Discogs…")).toBeNull();
   });
 
   it("ignores a slower, stale response after navigating to a different setlist", async () => {
