@@ -148,8 +148,10 @@ def create_song(
     to the catalog without attaching it to any setlist.
 
     If a song with the same title and artist already exists in the global
-    songs table, it is reused rather than duplicated. A Discogs link is
-    created alongside the song if one does not already exist.
+    songs table, it is reused rather than duplicated, and any of its
+    thumbnail/album/release_year/duration_ms left empty by that earlier
+    save are backfilled from this request. A Discogs link is created
+    alongside the song if one does not already exist.
     """
     setlist_ids = song_data.setlist_ids
     validate_user_setlist_ids(setlist_ids, current_user.id, session)
@@ -158,6 +160,19 @@ def create_song(
         return session.exec(
             select(Song).where(Song.title == song_data.title, Song.artist == song_data.artist)
         ).first()
+
+    def backfill_missing_metadata(song: Song) -> None:
+        """
+        Fill in gaps left by an earlier, less-complete save of this song
+        (e.g. one created without a thumbnail) using this request's data.
+
+        Only fills fields that are currently empty — never overwrites data
+        the catalog already has.
+        """
+        for field in ("thumbnail", "album", "release_year", "duration_ms"):
+            if getattr(song, field) is None and getattr(song_data, field) is not None:
+                setattr(song, field, getattr(song_data, field))
+        session.add(song)
 
     song = find_existing_song()
 
@@ -183,6 +198,8 @@ def create_song(
             session.add(song_link)
 
         background_tasks.add_task(fetch_and_save_youtube_link, song.id, session.get_bind())
+    else:
+        backfill_missing_metadata(song)
 
     for setlist_id in setlist_ids:
         add_song_to_setlist(song.id, setlist_id, session)
@@ -195,6 +212,7 @@ def create_song(
         song = find_existing_song()
         if song is None:
             raise
+        backfill_missing_metadata(song)
         for setlist_id in setlist_ids:
             add_song_to_setlist(song.id, setlist_id, session)
         session.commit()

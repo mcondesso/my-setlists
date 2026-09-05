@@ -101,6 +101,66 @@ def test_create_song_then_fetch_it(authenticated_client: TestClient) -> None:
     assert body["links"] == []
 
 
+def test_creating_a_duplicate_song_backfills_missing_metadata(
+    authenticated_client: TestClient,
+) -> None:
+    # Regression test: an earlier save (e.g. a manual entry, or a Discogs
+    # match with no cover art at the time) left the catalog's row without a
+    # thumbnail. Re-adding the "same" song via Discogs search reuses that
+    # row rather than duplicating it, and must not leave it art-less forever
+    # just because the row already existed.
+    first = authenticated_client.post("/songs/", json={"title": "Heart", "artist": "Darkside"})
+    assert first.status_code == status.HTTP_201_CREATED
+    assert first.json()["thumbnail"] is None
+
+    second = authenticated_client.post(
+        "/songs/",
+        json={
+            "title": "Heart",
+            "artist": "Darkside",
+            "thumbnail": "https://i.discogs.com/heart-thumb.jpg",
+            "album": "Psychic",
+            "release_year": 2013,
+        },
+    )
+
+    assert second.status_code == status.HTTP_201_CREATED
+    body = second.json()
+    assert body["id"] == first.json()["id"]
+    assert body["thumbnail"] == "https://i.discogs.com/heart-thumb.jpg"
+    assert body["album"] == "Psychic"
+    assert body["release_year"] == 2013
+
+    refetched = authenticated_client.get(f"/songs/{first.json()['id']}")
+    assert refetched.json()["thumbnail"] == "https://i.discogs.com/heart-thumb.jpg"
+
+
+def test_creating_a_duplicate_song_never_overwrites_existing_metadata(
+    authenticated_client: TestClient,
+) -> None:
+    first = authenticated_client.post(
+        "/songs/",
+        json={
+            "title": "Heart",
+            "artist": "Darkside",
+            "thumbnail": "https://i.discogs.com/original.jpg",
+        },
+    )
+    assert first.status_code == status.HTTP_201_CREATED
+
+    second = authenticated_client.post(
+        "/songs/",
+        json={
+            "title": "Heart",
+            "artist": "Darkside",
+            "thumbnail": "https://i.discogs.com/different.jpg",
+        },
+    )
+
+    assert second.status_code == status.HTTP_201_CREATED
+    assert second.json()["thumbnail"] == "https://i.discogs.com/original.jpg"
+
+
 def test_get_missing_song_returns_404(authenticated_client: TestClient) -> None:
     response = authenticated_client.get("/songs/00000000-0000-0000-0000-000000000000")
 

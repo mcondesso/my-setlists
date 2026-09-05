@@ -86,8 +86,10 @@ Each `src/models/*.py` holds the SQLModel table class **and** its API schemas
   `is_library=True`. It cannot be renamed, have its description changed, or be deleted
   (enforced in `routers/setlists.py`).
 - **Songs are global and deduplicated** by a `UniqueConstraint(title, artist)`. Creating
-  a song that already exists reuses the existing row. A song is only removed from the
-  global `songs` table when no `SetlistEntry` anywhere references it.
+  a song that already exists reuses the existing row, backfilling any of its
+  thumbnail/album/release_year/duration_ms left empty by that earlier save (never
+  overwriting fields it already has). A song is only removed from the global `songs`
+  table when no `SetlistEntry` anywhere references it.
 - **Setlist ↔ Song is many-to-many through `SetlistEntry`** (composite PK
   `setlist_id + song_id`, plus `position` for ordering).
 - **Song authorization** is implicit: a user may modify/delete a song only if it appears
