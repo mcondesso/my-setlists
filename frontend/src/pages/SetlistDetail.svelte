@@ -4,6 +4,7 @@
     addSongToSetlist,
     fetchSetlist,
     removeSongFromSetlist,
+    reorderSetlistSongs,
     searchSongs,
     updateSetlist,
   } from "../lib/backend";
@@ -112,6 +113,35 @@
     }
   }
 
+  let draggedSongId = $state<string | null>(null);
+
+  function handleDragOver(event: DragEvent, overSongId: string): void {
+    event.preventDefault();
+    if (!setlist || draggedSongId === null || draggedSongId === overSongId) {
+      return;
+    }
+    const from = setlist.entries.findIndex((e) => e.song_id === draggedSongId);
+    const to = setlist.entries.findIndex((e) => e.song_id === overSongId);
+    if (from === -1 || to === -1) return;
+    const reordered = [...setlist.entries];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    setlist.entries = reordered;
+  }
+
+  async function handleDrop(): Promise<void> {
+    if (!setlist || draggedSongId === null) return;
+    draggedSongId = null;
+    const orderedIds = setlist.entries.map((e) => e.song_id);
+    try {
+      await reorderSetlistSongs(setlist.id, orderedIds);
+    } catch (err) {
+      error = errorMessage(err, "Could not save the new order.");
+      // The optimistic reorder above may not reflect the server now.
+      await load(id);
+    }
+  }
+
   async function handleSearch(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     if (!query.trim()) return;
@@ -204,9 +234,27 @@
 
   {#if error}<p class="error">{error}</p>{/if}
 
-  <ol class="songs">
+  <ol class="songs" class:reorderable={setlist.is_owner}>
     {#each setlist.entries as entry (entry.song_id)}
-      <li>
+      <li
+        class:dragging={draggedSongId === entry.song_id}
+        ondragover={setlist.is_owner
+          ? (e) => handleDragOver(e, entry.song_id)
+          : undefined}
+      >
+        {#if setlist.is_owner}
+          <span
+            class="drag-handle"
+            draggable="true"
+            role="button"
+            tabindex="-1"
+            aria-label="Drag to reorder"
+            ondragstart={() => (draggedSongId = entry.song_id)}
+            ondragend={handleDrop}
+          >
+            ⠿
+          </span>
+        {/if}
         {#if entry.song.thumbnail}
           <img src={entry.song.thumbnail} alt="" />
         {/if}

@@ -106,6 +106,57 @@ def test_setlist_songs_are_returned_in_position_order(
     assert {e["song"]["title"] for e in by_recent.json()} == {"First", "Second", "Third"}
 
 
+def _add_songs(client: TestClient, setlist_id: str, titles: list[str]) -> list[str]:
+    song_ids = [_create_song(client, title) for title in titles]
+    for song_id in song_ids:
+        client.post(f"/setlists/{setlist_id}/songs/{song_id}")
+    return song_ids
+
+
+def test_reorder_setlist_songs(authenticated_client: TestClient) -> None:
+    setlist_id = _create_setlist(authenticated_client)["id"]
+    a, b, c = _add_songs(authenticated_client, setlist_id, ["A", "B", "C"])
+
+    response = authenticated_client.put(
+        f"/setlists/{setlist_id}/songs/order", json={"song_ids": [c, a, b]}
+    )
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    detail = authenticated_client.get(f"/setlists/{setlist_id}")
+    assert [e["song"]["title"] for e in detail.json()["entries"]] == ["C", "A", "B"]
+    assert [e["position"] for e in detail.json()["entries"]] == [1, 2, 3]
+
+
+def test_reorder_rejects_a_song_id_set_that_does_not_match(
+    authenticated_client: TestClient,
+) -> None:
+    setlist_id = _create_setlist(authenticated_client)["id"]
+    a, b, _c = _add_songs(authenticated_client, setlist_id, ["A", "B", "C"])
+
+    # Missing one of the setlist's songs.
+    response = authenticated_client.put(
+        f"/setlists/{setlist_id}/songs/order", json={"song_ids": [b, a]}
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    # A duplicate id (right length, wrong set).
+    response = authenticated_client.put(
+        f"/setlists/{setlist_id}/songs/order", json={"song_ids": [a, a, b]}
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def test_reorder_requires_setlist_ownership(authenticated_client: TestClient) -> None:
+    setlist_id = _create_setlist(authenticated_client, is_public=True)["id"]
+    a, b = _add_songs(authenticated_client, setlist_id, ["A", "B"])
+
+    response = _second_user_client().put(
+        f"/setlists/{setlist_id}/songs/order", json={"song_ids": [b, a]}
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
 def test_adding_the_same_song_twice_is_rejected(authenticated_client: TestClient) -> None:
     setlist_id = _create_setlist(authenticated_client)["id"]
     song_id = _create_song(authenticated_client, "Once")

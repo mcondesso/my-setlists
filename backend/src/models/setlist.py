@@ -84,6 +84,16 @@ class SetlistUpdate(SQLModel):
     is_public: bool | None = Field(default=None)
 
 
+class SetlistReorder(SQLModel):
+    """Request schema for reordering a setlist's songs.
+
+    song_ids must be exactly the setlist's current songs, in the desired
+    performance order.
+    """
+
+    song_ids: list[UUID]
+
+
 class SetlistEntry(SQLModel, table=True):
     """Database model representing a song's membership in a setlist."""
 

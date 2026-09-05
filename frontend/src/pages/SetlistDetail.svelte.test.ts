@@ -8,10 +8,15 @@ vi.mock("../lib/backend", async (importOriginal) => {
     ...actual,
     fetchSetlist: vi.fn(),
     updateSetlist: vi.fn(),
+    reorderSetlistSongs: vi.fn(),
   };
 });
 
-import { fetchSetlist, updateSetlist } from "../lib/backend";
+import {
+  fetchSetlist,
+  reorderSetlistSongs,
+  updateSetlist,
+} from "../lib/backend";
 import SetlistDetail from "./SetlistDetail.svelte";
 
 function setlist(
@@ -60,6 +65,8 @@ function songEntry(
 describe("SetlistDetail", () => {
   beforeEach(() => {
     vi.mocked(updateSetlist).mockReset();
+    vi.mocked(reorderSetlistSongs).mockReset();
+    vi.mocked(reorderSetlistSongs).mockResolvedValue(undefined);
   });
 
   it("edits the name and description via the Edit button", async () => {
@@ -259,5 +266,52 @@ describe("SetlistDetail", () => {
 
     await waitFor(() => screen.getByRole("heading", { name: "My Set" }));
     expect(screen.getByText(/2 songs · over 10 min/)).toBeInTheDocument();
+  });
+
+  it("reorders songs by dragging and persists the new order", async () => {
+    vi.mocked(fetchSetlist).mockResolvedValue(
+      setlist("a", "My Set", {
+        entries: [
+          { ...songEntry("s1", "First"), position: 1 },
+          { ...songEntry("s2", "Second"), position: 2 },
+          { ...songEntry("s3", "Third"), position: 3 },
+        ],
+      }),
+    );
+
+    render(SetlistDetail, { props: { id: "a" } });
+    await waitFor(() => screen.getByRole("heading", { name: "My Set" }));
+
+    const items = () =>
+      screen.getAllByRole("listitem").map((li) => li.textContent?.trim());
+    expect(items()[0]).toContain("First");
+
+    const handles = screen.getAllByLabelText("Drag to reorder");
+    const rows = screen.getAllByRole("listitem");
+
+    // Drag the third song up to the first position.
+    await fireEvent.dragStart(handles[2]);
+    await fireEvent.dragOver(rows[0]);
+    await fireEvent.dragEnd(handles[2]);
+
+    await waitFor(() =>
+      expect(reorderSetlistSongs).toHaveBeenCalledWith("a", ["s3", "s1", "s2"]),
+    );
+    expect(items()[0]).toContain("Third");
+  });
+
+  it("does not show drag handles on a setlist you don't own", async () => {
+    vi.mocked(fetchSetlist).mockResolvedValue(
+      setlist("a", "Theirs", {
+        is_owner: false,
+        is_public: true,
+        entries: [songEntry("s1", "Song")],
+      }),
+    );
+
+    render(SetlistDetail, { props: { id: "a" } });
+    await waitFor(() => screen.getByRole("heading", { name: "Theirs" }));
+
+    expect(screen.queryByLabelText("Drag to reorder")).toBeNull();
   });
 });

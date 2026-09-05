@@ -85,6 +85,15 @@ export function removeSongFromSetlist(
   return api.delete(`/setlists/${setlistId}/songs/${songId}`);
 }
 
+/** Sets the performance order of a setlist's songs. songIds must be exactly
+ * the setlist's current songs, in the desired order. */
+export function reorderSetlistSongs(
+  setlistId: string,
+  songIds: string[],
+): Promise<void> {
+  return api.put(`/setlists/${setlistId}/songs/order`, { song_ids: songIds });
+}
+
 export function searchSongs(query: string): Promise<DiscogsSearchResult[]> {
   return api.get(`/songs/search?q=${encodeURIComponent(query)}`);
 }
