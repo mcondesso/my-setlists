@@ -6,6 +6,7 @@ import type {
   DiscogsSearchResult,
   Setlist,
   SetlistWithEntries,
+  Song,
   SongRead,
   User,
 } from "./types";
@@ -102,4 +103,18 @@ export function addSongToSetlist(
     discogs_url: result.discogs_url,
     setlist_ids: [setlistId],
   });
+}
+
+export function fetchSong(id: string): Promise<Song> {
+  return api.get(`/songs/${id}`);
+}
+
+/** Adds a song already in the catalog to a setlist (as opposed to
+ * addSongToSetlist, which also creates/dedupes the song from a Discogs
+ * search result). */
+export function addExistingSongToSetlist(
+  setlistId: string,
+  songId: string,
+): Promise<void> {
+  return api.post(`/setlists/${setlistId}/songs/${songId}`);
 }

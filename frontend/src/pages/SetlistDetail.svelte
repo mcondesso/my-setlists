@@ -186,7 +186,9 @@
           <img src={entry.song.thumbnail} alt="" />
         {/if}
         <div class="song-info">
-          <strong>{entry.song.title}</strong>
+          <a href={`#/songs/${entry.song.id}`}
+            ><strong>{entry.song.title}</strong></a
+          >
           <span>{entry.song.artist}</span>
         </div>
         {#if setlist.is_owner}

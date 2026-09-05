@@ -8,6 +8,7 @@
   import Register from "./pages/Register.svelte";
   import SetlistDetail from "./pages/SetlistDetail.svelte";
   import Setlists from "./pages/Setlists.svelte";
+  import SongDetail from "./pages/SongDetail.svelte";
 
   onMount(async () => {
     if (auth.token && !auth.user) {
@@ -35,6 +36,7 @@
   }
 
   const setlistMatch = $derived(router.path.match(/^\/setlists\/([^/]+)$/));
+  const songMatch = $derived(router.path.match(/^\/songs\/([^/]+)$/));
 </script>
 
 <header>
@@ -59,6 +61,8 @@
     {/if}
   {:else if setlistMatch}
     <SetlistDetail id={setlistMatch[1]} />
+  {:else if songMatch}
+    <SongDetail id={songMatch[1]} />
   {:else}
     <Setlists />
   {/if}
