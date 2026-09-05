@@ -80,6 +80,28 @@ describe("SongDetail", () => {
 
     const link = screen.getByRole("link", { name: "Listen on YouTube" });
     expect(link).toHaveAttribute("href", "https://youtube.com/watch?v=abc123");
+    expect(link.querySelector("svg.platform-icon")).toBeInTheDocument();
+  });
+
+  it("shows an icon for a Discogs link too", async () => {
+    vi.mocked(fetchSong).mockResolvedValue(
+      song({
+        links: [
+          {
+            platform: "discogs",
+            external_id: "5967",
+            url: "https://www.discogs.com/master/5967",
+          },
+        ],
+      }),
+    );
+    vi.mocked(fetchSetlists).mockResolvedValue([]);
+
+    render(SongDetail, { props: { id: "song-1" } });
+    await waitFor(() => screen.getByRole("heading", { name: "Heart" }));
+
+    const link = screen.getByRole("link", { name: "View on Discogs" });
+    expect(link.querySelector("svg.platform-icon")).toBeInTheDocument();
   });
 
   it("does not show a links list when no link has a url", async () => {
