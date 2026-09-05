@@ -140,7 +140,8 @@ h2 {
 }
 
 .card.narrow {
-  max-width: 420px;
+  max-width: 480px;
+  width: 100%;
 }
 
 a.card:hover {
