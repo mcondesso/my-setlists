@@ -100,7 +100,7 @@ def get_setlists(
         .limit(limit)
     )
     setlists = session.exec(statement).all()
-    return [SetlistRead.from_setlist(s) for s in setlists]
+    return [SetlistRead.from_setlist(s, current_user.id) for s in setlists]
 
 
 @router.post("/", response_model=SetlistRead, status_code=status.HTTP_201_CREATED)
@@ -124,7 +124,7 @@ def create_setlist(
     session.add(setlist)
     session.commit()
     session.refresh(setlist)
-    return SetlistRead.from_setlist(setlist)
+    return SetlistRead.from_setlist(setlist, current_user.id)
 
 
 @router.get("/{setlist_id}", response_model=SetlistReadWithEntries)
@@ -150,7 +150,7 @@ def get_setlist(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access this setlist",
         )
-    return SetlistReadWithEntries.from_setlist(setlist)
+    return SetlistReadWithEntries.from_setlist(setlist, current_user.id)
 
 
 @router.patch("/{setlist_id}", response_model=SetlistRead)
@@ -181,7 +181,7 @@ def update_setlist(
     session.add(setlist)
     session.commit()
     session.refresh(setlist)
-    return SetlistRead.from_setlist(setlist)
+    return SetlistRead.from_setlist(setlist, current_user.id)
 
 
 @router.delete("/{setlist_id}", status_code=status.HTTP_204_NO_CONTENT)

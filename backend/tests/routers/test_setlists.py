@@ -3,11 +3,35 @@
 from fastapi import status
 from fastapi.testclient import TestClient
 
+import src.app
+
 
 def _create_setlist(client: TestClient, name: str = "Live Set", **fields) -> dict:
     response = client.post("/setlists/", json={"name": name, **fields})
     assert response.status_code == status.HTTP_201_CREATED
     return response.json()
+
+
+def _second_user_client() -> TestClient:
+    """
+    A second, independently-authenticated client sharing the same app
+    (and thus the same overridden test database) as `client`/`authenticated_client`.
+    """
+    other = TestClient(src.app.app)
+    other.post(
+        "/auth/register",
+        json={
+            "email": "other@example.com",
+            "display_name": "Other User",
+            "password": "securepassword123",
+        },
+    )
+    login = other.post(
+        "/auth/login",
+        data={"username": "other@example.com", "password": "securepassword123"},
+    )
+    other.headers.update({"Authorization": f"Bearer {login.json()['access_token']}"})
+    return other
 
 
 def _create_song(client: TestClient, title: str) -> str:
@@ -22,6 +46,23 @@ def test_create_setlist(authenticated_client: TestClient) -> None:
     assert body["name"] == "Encore"
     assert body["owner_display_name"] == "Test User"
     assert body["is_library"] is False
+
+
+def test_is_owner_reflects_who_owns_the_setlist(authenticated_client: TestClient) -> None:
+    setlist_id = _create_setlist(authenticated_client, "Mine", is_public=True)["id"]
+    other_client = _second_user_client()
+
+    own_view = authenticated_client.get(f"/setlists/{setlist_id}")
+    assert own_view.json()["is_owner"] is True
+
+    other_view = other_client.get(f"/setlists/{setlist_id}")
+    assert other_view.json()["is_owner"] is False
+
+    own_list = authenticated_client.get("/setlists/").json()
+    assert next(s for s in own_list if s["id"] == setlist_id)["is_owner"] is True
+
+    other_list = other_client.get("/setlists/").json()
+    assert next(s for s in other_list if s["id"] == setlist_id)["is_owner"] is False
 
 
 def test_list_omits_entries(authenticated_client: TestClient) -> None:

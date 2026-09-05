@@ -166,7 +166,7 @@
   {:else}
     <div class="page-title">
       <h1>{setlist.name}</h1>
-      {#if !setlist.is_library}
+      {#if setlist.is_owner && !setlist.is_library}
         <button class="ghost" onclick={startEdit}>Edit</button>
       {/if}
     </div>
@@ -189,45 +189,53 @@
           <strong>{entry.song.title}</strong>
           <span>{entry.song.artist}</span>
         </div>
-        <button class="ghost" onclick={() => handleRemove(entry.song_id)}
-          >Remove</button
-        >
+        {#if setlist.is_owner}
+          <button class="ghost" onclick={() => handleRemove(entry.song_id)}
+            >Remove</button
+          >
+        {/if}
       </li>
     {:else}
-      <li class="empty">No songs yet — search below to add one.</li>
+      <li class="empty">
+        {setlist.is_owner
+          ? "No songs yet — search below to add one."
+          : "No songs yet."}
+      </li>
     {/each}
   </ol>
 
-  <form class="card narrow search" onsubmit={handleSearch}>
-    <h2>Add a song</h2>
-    <input bind:value={query} placeholder="Search Discogs…" />
-    <button type="submit" disabled={searching}
-      >{searching ? "Searching…" : "Search"}</button
-    >
-  </form>
+  {#if setlist.is_owner}
+    <form class="card narrow search" onsubmit={handleSearch}>
+      <h2>Add a song</h2>
+      <input bind:value={query} placeholder="Search Discogs…" />
+      <button type="submit" disabled={searching}
+        >{searching ? "Searching…" : "Search"}</button
+      >
+    </form>
 
-  {#if results.length > 0}
-    <ul class="songs results">
-      {#each results as result (result.discogs_id)}
-        <li>
-          {#if result.thumbnail}
-            <img src={result.thumbnail} alt="" />
-          {/if}
-          <div class="song-info">
-            <strong>{result.title}</strong>
-            <span
-              >{result.artist}{#if result.release_year}
-                · {result.release_year}{/if}</span
+    {#if results.length > 0}
+      <ul class="songs results">
+        {#each results as result (result.discogs_id)}
+          <li>
+            {#if result.thumbnail}
+              <img src={result.thumbnail} alt="" />
+            {/if}
+            <div class="song-info">
+              <strong>{result.title}</strong>
+              <span
+                >{result.artist}{#if result.release_year}
+                  · {result.release_year}{/if}</span
+              >
+            </div>
+            <button
+              onclick={() => handleAdd(result)}
+              disabled={addingId === result.discogs_id}
             >
-          </div>
-          <button
-            onclick={() => handleAdd(result)}
-            disabled={addingId === result.discogs_id}
-          >
-            {addingId === result.discogs_id ? "Adding…" : "Add"}
-          </button>
-        </li>
-      {/each}
-    </ul>
+              {addingId === result.discogs_id ? "Adding…" : "Add"}
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
   {/if}
 {/if}
