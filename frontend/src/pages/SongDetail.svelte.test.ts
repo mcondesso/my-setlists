@@ -61,6 +61,16 @@ describe("SongDetail", () => {
     expect(screen.getByText(/2013/)).toBeInTheDocument();
   });
 
+  it("shows the song's duration when known", async () => {
+    vi.mocked(fetchSong).mockResolvedValue(song({ duration_ms: 225000 }));
+    vi.mocked(fetchSetlists).mockResolvedValue([]);
+
+    render(SongDetail, { props: { id: "song-1" } });
+
+    await waitFor(() => screen.getByRole("heading", { name: "Heart" }));
+    expect(screen.getByText(/3:45/)).toBeInTheDocument();
+  });
+
   it("links out to YouTube when a youtube link is present", async () => {
     vi.mocked(fetchSong).mockResolvedValue(
       song({

@@ -66,4 +66,5 @@ export interface DiscogsSearchResult {
   release_year: number | null;
   discogs_url: string | null;
   thumbnail: string | null;
+  duration_ms: number | null;
 }

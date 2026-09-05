@@ -43,6 +43,7 @@ class DiscogsSearchResult:
         release_year: int | None,
         discogs_url: str | None,
         thumbnail: str | None,
+        duration_ms: int | None,
     ) -> None:
         self.discogs_id = discogs_id
         self.title = title
@@ -51,6 +52,7 @@ class DiscogsSearchResult:
         self.release_year = release_year
         self.discogs_url = discogs_url
         self.thumbnail = thumbnail
+        self.duration_ms = duration_ms
 
 
 class _MasterCandidate:
@@ -98,7 +100,7 @@ def search_discogs(query: str, limit: int = 5) -> list[DiscogsSearchResult]:
 
     scored: list[tuple[float, DiscogsSearchResult]] = []
     for master, tracks in zip(masters, tracklists, strict=True):
-        for track_title, position in tracks:
+        for track_title, position, duration_ms in tracks:
             score = _match_score(query, track_title, master.artist)
             scored.append(
                 (
@@ -111,6 +113,7 @@ def search_discogs(query: str, limit: int = 5) -> list[DiscogsSearchResult]:
                         release_year=master.year,
                         discogs_url=master.url,
                         thumbnail=master.thumbnail,
+                        duration_ms=duration_ms,
                     ),
                 )
             )
@@ -151,9 +154,9 @@ def _search_masters(query: str, limit: int) -> list[_MasterCandidate]:
     return masters
 
 
-def _fetch_tracklist(master_id: int) -> list[tuple[str, str]]:
+def _fetch_tracklist(master_id: int) -> list[tuple[str, str, int | None]]:
     """
-    Return (title, position) for every real track on a master.
+    Return (title, position, duration_ms) for every real track on a master.
 
     Returns an empty list if the lookup fails — the caller treats that
     master as having nothing to offer rather than failing the search.
@@ -174,8 +177,29 @@ def _fetch_tracklist(master_id: int) -> list[tuple[str, str]]:
             continue
         title = (entry.get("title") or "").strip()
         if title:
-            tracks.append((title, entry.get("position") or title))
+            tracks.append(
+                (
+                    title,
+                    entry.get("position") or title,
+                    _parse_duration(entry.get("duration")),
+                )
+            )
     return tracks
+
+
+def _parse_duration(duration: str | None) -> int | None:
+    """Parse a Discogs 'M:SS' or 'H:MM:SS' duration string into milliseconds."""
+    if not duration:
+        return None
+    parts = duration.strip().split(":")
+    try:
+        parts_int = [int(part) for part in parts]
+    except ValueError:
+        return None
+    seconds = 0
+    for part in parts_int:
+        seconds = seconds * 60 + part
+    return seconds * 1000 if seconds > 0 else None
 
 
 def _match_score(query: str, track_title: str, artist: str) -> float:

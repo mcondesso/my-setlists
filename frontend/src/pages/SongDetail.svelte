@@ -5,6 +5,7 @@
     fetchSetlists,
     fetchSong,
   } from "../lib/backend";
+  import { formatDuration } from "../lib/format";
   import type { Setlist, Song } from "../lib/types";
 
   let { id }: { id: string } = $props();
@@ -91,7 +92,8 @@
       <p class="meta">
         {song.artist}{#if song.album}
           · {song.album}{/if}{#if song.release_year}
-          · {song.release_year}{/if}
+          · {song.release_year}{/if}{#if formatDuration(song.duration_ms)}
+          · {formatDuration(song.duration_ms)}{/if}
       </p>
     </div>
   </div>

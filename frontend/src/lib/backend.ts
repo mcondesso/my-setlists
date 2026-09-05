@@ -99,6 +99,7 @@ export function addSongToSetlist(
     album: result.album,
     release_year: result.release_year,
     thumbnail: result.thumbnail,
+    duration_ms: result.duration_ms,
     discogs_id: result.discogs_id,
     discogs_url: result.discogs_url,
     setlist_ids: [setlistId],
