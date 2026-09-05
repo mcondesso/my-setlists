@@ -134,8 +134,11 @@ value in the path (one link per song per platform).
 
 ### External services & background tasks
 
-- `src/services/discogs.py` — synchronous `httpx` call to the Discogs search API,
-  used by `GET /songs/search`. Needs `DISCOGS_API_TOKEN`.
+- `src/services/discogs.py` — used by `GET /songs/search`. Needs `DISCOGS_API_TOKEN`.
+  Discogs only searches at the release/master (album) level, so this searches masters
+  first, then fetches the tracklist of each candidate master (concurrently, via a
+  thread pool — these are synchronous `httpx` calls) and scores every track's title
+  against the query, returning individual matching tracks rather than albums.
 - `src/services/youtube.py` — scrapes YouTube via the `youtube-search` package.
 - `src/tasks/youtube.py` — FastAPI `BackgroundTasks` job queued on song creation that
   finds the most-viewed YouTube video and saves a `SongLink`. It opens its own `Session`
