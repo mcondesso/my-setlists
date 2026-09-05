@@ -63,6 +63,15 @@ def validate_user_setlist_ids(
             )
 
 
+def _discogs_error_detail(status_code: int) -> str:
+    """Turn a Discogs error status into a message that says what to actually do."""
+    if status_code in (401, 403):
+        return "Discogs rejected the request — DISCOGS_API_TOKEN is missing or invalid."
+    if status_code == 429:
+        return "Discogs rate limit exceeded — try again in a moment."
+    return "The Discogs search is currently unavailable."
+
+
 @router.get("/search", response_model=list[DiscogsSearchResultRead])
 def search_songs(
     q: str,
@@ -75,7 +84,8 @@ def search_songs(
     so the client can pick one and save it directly.
 
     Raises HTTP 504 if Discogs times out and HTTP 502 for any other
-    failure reaching it.
+    failure reaching it (a bad/missing DISCOGS_API_TOKEN or Discogs-side
+    rate limiting get a more specific 502 detail than "unavailable").
     """
     try:
         results = search_discogs(query=q)
@@ -83,6 +93,11 @@ def search_songs(
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="The Discogs search timed out — try again.",
+        ) from error
+    except httpx.HTTPStatusError as error:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=_discogs_error_detail(error.response.status_code),
         ) from error
     except httpx.HTTPError as error:
         raise HTTPException(

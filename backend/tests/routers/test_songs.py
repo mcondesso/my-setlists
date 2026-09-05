@@ -35,6 +35,52 @@ def test_search_songs_maps_discogs_failure_to_502(monkeypatch) -> None:
     assert exc_info.value.status_code == status.HTTP_502_BAD_GATEWAY
 
 
+def _http_status_error(status_code: int) -> httpx.HTTPStatusError:
+    request = httpx.Request("GET", "https://api.discogs.com/database/search")
+    response = httpx.Response(status_code, request=request)
+    return httpx.HTTPStatusError("error", request=request, response=response)
+
+
+@pytest.mark.parametrize("status_code", [401, 403])
+def test_search_songs_reports_a_bad_token_clearly(monkeypatch, status_code) -> None:
+    def raise_auth_error(query: str):
+        raise _http_status_error(status_code)
+
+    monkeypatch.setattr(songs_router, "search_discogs", raise_auth_error)
+
+    with pytest.raises(HTTPException) as exc_info:
+        songs_router.search_songs(q="wish you were here", current_user=_USER)
+
+    assert exc_info.value.status_code == status.HTTP_502_BAD_GATEWAY
+    assert "DISCOGS_API_TOKEN" in exc_info.value.detail
+
+
+def test_search_songs_reports_discogs_rate_limiting_clearly(monkeypatch) -> None:
+    def raise_rate_limited(query: str):
+        raise _http_status_error(429)
+
+    monkeypatch.setattr(songs_router, "search_discogs", raise_rate_limited)
+
+    with pytest.raises(HTTPException) as exc_info:
+        songs_router.search_songs(q="wish you were here", current_user=_USER)
+
+    assert exc_info.value.status_code == status.HTTP_502_BAD_GATEWAY
+    assert "rate limit" in exc_info.value.detail.lower()
+
+
+def test_search_songs_falls_back_to_a_generic_message(monkeypatch) -> None:
+    def raise_server_error(query: str):
+        raise _http_status_error(503)
+
+    monkeypatch.setattr(songs_router, "search_discogs", raise_server_error)
+
+    with pytest.raises(HTTPException) as exc_info:
+        songs_router.search_songs(q="wish you were here", current_user=_USER)
+
+    assert exc_info.value.status_code == status.HTTP_502_BAD_GATEWAY
+    assert exc_info.value.detail == "The Discogs search is currently unavailable."
+
+
 def _create_song(client: TestClient, title: str, artist: str = "Artist") -> dict:
     response = client.post("/songs/", json={"title": title, "artist": artist})
     assert response.status_code == status.HTTP_201_CREATED
