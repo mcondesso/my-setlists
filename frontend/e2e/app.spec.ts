@@ -26,7 +26,11 @@ test("register, create a setlist, log out, and log back in to find it", async ({
   // Register auto-logs in (completeLogin) and lands on the setlists screen.
   // Registering also creates the account's Library setlist, whose card also
   // shows the display name ("by E2E Tester") — match the header's span only.
-  await expect(page.getByRole("heading", { name: "Setlists" })).toBeVisible();
+  // exact: true so the page's <h1>Setlists</h1> doesn't also match the
+  // <h2>My setlists</h2> section heading.
+  await expect(
+    page.getByRole("heading", { name: "Setlists", exact: true }),
+  ).toBeVisible();
   await expect(page.getByText("E2E Tester", { exact: true })).toBeVisible();
 
   await page.getByLabel("Name", { exact: true }).fill(setlistName);
@@ -46,6 +50,8 @@ test("register, create a setlist, log out, and log back in to find it", async ({
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
 
-  await expect(page.getByRole("heading", { name: "Setlists" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Setlists", exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: setlistName })).toBeVisible();
 });
