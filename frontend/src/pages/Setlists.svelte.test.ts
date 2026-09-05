@@ -13,7 +13,11 @@ vi.mock("../lib/backend", async (importOriginal) => {
 import { fetchSetlists } from "../lib/backend";
 import Setlists from "./Setlists.svelte";
 
-function makeSetlists(count: number, startAt: number): Setlist[] {
+function makeSetlists(
+  count: number,
+  startAt: number,
+  overrides: Partial<Setlist> = {},
+): Setlist[] {
   return Array.from({ length: count }, (_, i) => ({
     id: `id-${startAt + i}`,
     name: `Setlist ${startAt + i}`,
@@ -23,6 +27,7 @@ function makeSetlists(count: number, startAt: number): Setlist[] {
     owner_display_name: "Ada",
     is_owner: true,
     created_at: "now",
+    ...overrides,
   }));
 }
 
@@ -64,6 +69,41 @@ describe("Setlists pagination", () => {
     });
     expect(
       screen.queryByRole("button", { name: "Load more" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("Setlists grouping", () => {
+  it("separates the caller's own setlists from public ones", async () => {
+    vi.mocked(fetchSetlists).mockResolvedValueOnce([
+      ...makeSetlists(2, 0, { is_owner: true }),
+      ...makeSetlists(2, 10, { is_owner: false, owner_display_name: "Bob" }),
+    ]);
+
+    render(Setlists);
+
+    await waitFor(() => screen.getByText("Setlist 0"));
+    expect(
+      screen.getByRole("heading", { name: "My setlists" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Public setlists" }),
+    ).toBeInTheDocument();
+  });
+
+  it("omits a section heading when that group is empty", async () => {
+    vi.mocked(fetchSetlists).mockResolvedValueOnce(
+      makeSetlists(2, 0, { is_owner: true }),
+    );
+
+    render(Setlists);
+
+    await waitFor(() => screen.getByText("Setlist 0"));
+    expect(
+      screen.getByRole("heading", { name: "My setlists" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Public setlists" }),
     ).not.toBeInTheDocument();
   });
 });

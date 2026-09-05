@@ -21,6 +21,11 @@
   let newIsPublic = $state(false);
   let creating = $state(false);
 
+  // GET /setlists/ already returns the caller's own setlists ahead of
+  // public ones from others, so the list splits cleanly in two.
+  const mySetlists = $derived(setlists.filter((s) => s.is_owner));
+  const publicSetlists = $derived(setlists.filter((s) => !s.is_owner));
+
   onMount(async () => {
     try {
       const page = await fetchSetlists(PAGE_SIZE, 0);
@@ -99,28 +104,44 @@
   >
 </form>
 
+{#snippet setlistCard(setlist: Setlist)}
+  <li>
+    <a class="card" href={`#/setlists/${setlist.id}`}>
+      <h3>
+        {setlist.name}
+        {#if setlist.is_library}<span class="badge">Library</span>{/if}
+      </h3>
+      {#if setlist.description}<p>{setlist.description}</p>{/if}
+      <OwnerBadge
+        ownerDisplayName={setlist.owner_display_name}
+        isPublic={setlist.is_public}
+      />
+    </a>
+  </li>
+{/snippet}
+
 {#if loading}
   <p>Loading…</p>
 {:else if setlists.length === 0}
   <p>No setlists yet.</p>
 {:else}
-  <ul class="grid">
-    {#each setlists as setlist (setlist.id)}
-      <li>
-        <a class="card" href={`#/setlists/${setlist.id}`}>
-          <h3>
-            {setlist.name}
-            {#if setlist.is_library}<span class="badge">Library</span>{/if}
-          </h3>
-          {#if setlist.description}<p>{setlist.description}</p>{/if}
-          <OwnerBadge
-            ownerDisplayName={setlist.owner_display_name}
-            isPublic={setlist.is_public}
-          />
-        </a>
-      </li>
-    {/each}
-  </ul>
+  {#if mySetlists.length > 0}
+    <h2>My setlists</h2>
+    <ul class="grid">
+      {#each mySetlists as setlist (setlist.id)}
+        {@render setlistCard(setlist)}
+      {/each}
+    </ul>
+  {/if}
+
+  {#if publicSetlists.length > 0}
+    <h2 class="section-heading">Public setlists</h2>
+    <ul class="grid">
+      {#each publicSetlists as setlist (setlist.id)}
+        {@render setlistCard(setlist)}
+      {/each}
+    </ul>
+  {/if}
 
   {#if hasMore}
     <button class="ghost" onclick={loadMore} disabled={loadingMore}>
