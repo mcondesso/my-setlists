@@ -85,3 +85,50 @@ def test_library_setlist_cannot_be_deleted(authenticated_client: TestClient) -> 
 
 def test_setlists_require_authentication(client: TestClient) -> None:
     assert client.get("/setlists/").status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_update_setlist_name_and_description(authenticated_client: TestClient) -> None:
+    setlist = _create_setlist(authenticated_client, "Draft", description="wip")
+
+    response = authenticated_client.patch(
+        f"/setlists/{setlist['id']}",
+        json={"name": "Final", "description": "ready to play"},
+    )
+
+    # Regression test: this 500ed with a ResponseValidationError — the
+    # handler returned the bare ORM object instead of building a SetlistRead
+    # (which needs owner_display_name, not a column on the model), and
+    # nothing but a real HTTP round-trip could catch it.
+    assert response.status_code == status.HTTP_200_OK
+    body = response.json()
+    assert body["name"] == "Final"
+    assert body["description"] == "ready to play"
+    assert body["owner_display_name"] == "Test User"
+
+    refetched = authenticated_client.get(f"/setlists/{setlist['id']}")
+    assert refetched.json()["name"] == "Final"
+
+
+def test_update_setlist_clears_description_with_null(authenticated_client: TestClient) -> None:
+    setlist = _create_setlist(authenticated_client, "Draft", description="wip")
+
+    response = authenticated_client.patch(f"/setlists/{setlist['id']}", json={"description": None})
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["description"] is None
+
+
+def test_update_library_setlist_name_is_rejected(authenticated_client: TestClient) -> None:
+    library = next(s for s in authenticated_client.get("/setlists/").json() if s["is_library"])
+
+    response = authenticated_client.patch(f"/setlists/{library['id']}", json={"name": "Renamed"})
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_update_missing_setlist_returns_404(authenticated_client: TestClient) -> None:
+    response = authenticated_client.patch(
+        "/setlists/00000000-0000-0000-0000-000000000000", json={"name": "X"}
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND

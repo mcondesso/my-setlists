@@ -159,7 +159,7 @@ def update_setlist(
     setlist_data: SetlistUpdate,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
-) -> Setlist:
+) -> SetlistRead:
     """
     Update a setlist's name, description, or visibility.
 
@@ -181,7 +181,7 @@ def update_setlist(
     session.add(setlist)
     session.commit()
     session.refresh(setlist)
-    return setlist
+    return SetlistRead.from_setlist(setlist)
 
 
 @router.delete("/{setlist_id}", status_code=status.HTTP_204_NO_CONTENT)
