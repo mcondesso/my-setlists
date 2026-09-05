@@ -70,6 +70,13 @@ export function createSetlist(data: {
   return api.post("/setlists/", data);
 }
 
+export function updateSetlist(
+  id: string,
+  data: { name?: string; description?: string | null; is_public?: boolean },
+): Promise<Setlist> {
+  return api.patch(`/setlists/${id}`, data);
+}
+
 export function removeSongFromSetlist(
   setlistId: string,
   songId: string,
