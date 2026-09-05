@@ -5,6 +5,7 @@
     fetchSetlist,
     removeSongFromSetlist,
     searchSongs,
+    updateSetlist,
   } from "../lib/backend";
   import type { DiscogsSearchResult, SetlistWithEntries } from "../lib/types";
   import OwnerBadge from "../components/OwnerBadge.svelte";
@@ -14,6 +15,11 @@
   let setlist = $state<SetlistWithEntries | null>(null);
   let loading = $state(true);
   let error = $state("");
+
+  let editing = $state(false);
+  let editName = $state("");
+  let editDescription = $state("");
+  let saving = $state(false);
 
   let query = $state("");
   let results = $state<DiscogsSearchResult[]>([]);
@@ -44,10 +50,41 @@
 
   $effect(() => {
     load(id);
-    // Reset search state when navigating between setlists.
+    // Reset search and edit state when navigating between setlists.
     query = "";
     results = [];
+    editing = false;
   });
+
+  function startEdit(): void {
+    if (!setlist) return;
+    editName = setlist.name;
+    editDescription = setlist.description ?? "";
+    editing = true;
+  }
+
+  function cancelEdit(): void {
+    editing = false;
+  }
+
+  async function handleSaveEdit(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+    if (!setlist || !editName.trim()) return;
+    saving = true;
+    error = "";
+    try {
+      const updated = await updateSetlist(setlist.id, {
+        name: editName.trim(),
+        description: editDescription.trim() || null,
+      });
+      setlist = { ...setlist, ...updated };
+      editing = false;
+    } catch (err) {
+      error = errorMessage(err, "Could not update setlist.");
+    } finally {
+      saving = false;
+    }
+  }
 
   async function handleRemove(songId: string): Promise<void> {
     try {
@@ -101,8 +138,40 @@
 {:else if !setlist}
   <p class="error">{error}</p>
 {:else}
-  <h1>{setlist.name}</h1>
-  {#if setlist.description}<p>{setlist.description}</p>{/if}
+  {#if editing}
+    <form class="card narrow" onsubmit={handleSaveEdit}>
+      <h2>Edit setlist</h2>
+      <label>
+        Name
+        <input bind:value={editName} required />
+      </label>
+      <label>
+        Description
+        <input bind:value={editDescription} />
+      </label>
+      <div class="button-row">
+        <button type="submit" disabled={saving}
+          >{saving ? "Saving…" : "Save"}</button
+        >
+        <button
+          type="button"
+          class="ghost"
+          onclick={cancelEdit}
+          disabled={saving}
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  {:else}
+    <div class="page-title">
+      <h1>{setlist.name}</h1>
+      {#if !setlist.is_library}
+        <button class="ghost" onclick={startEdit}>Edit</button>
+      {/if}
+    </div>
+    {#if setlist.description}<p>{setlist.description}</p>{/if}
+  {/if}
   <OwnerBadge
     ownerDisplayName={setlist.owner_display_name}
     isPublic={setlist.is_public}
