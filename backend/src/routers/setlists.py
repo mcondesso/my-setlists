@@ -18,6 +18,7 @@ from src.models.setlist import (
     SetlistEntryReadWithSong,
     SetlistRead,
     SetlistReadWithEntries,
+    SetlistReorder,
     SetlistUpdate,
 )
 from src.models.song import Song
@@ -268,6 +269,44 @@ def add_song_to_setlist(
     session.commit()
     session.refresh(entry)
     return entry
+
+
+@router.put(
+    "/{setlist_id}/songs/order",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def reorder_setlist_songs(
+    setlist_id: UUID,
+    reorder: SetlistReorder,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> None:
+    """
+    Set the performance order of a setlist's songs.
+
+    reorder.song_ids must be exactly the setlist's current songs (same
+    set, reordered); positions are rewritten to 1..N in that order.
+    Raises HTTP 400 if the song ids don't match the setlist's contents.
+    """
+    setlist = get_user_setlist(setlist_id, current_user, session)
+
+    entries = {
+        entry.song_id: entry
+        for entry in session.exec(
+            select(SetlistEntry).where(SetlistEntry.setlist_id == setlist.id)
+        ).all()
+    }
+
+    if set(reorder.song_ids) != set(entries) or len(reorder.song_ids) != len(entries):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="song_ids must be exactly the setlist's current songs, reordered",
+        )
+
+    for position, song_id in enumerate(reorder.song_ids, start=1):
+        entries[song_id].position = position
+        session.add(entries[song_id])
+    session.commit()
 
 
 @router.delete(
