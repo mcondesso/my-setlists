@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDuration } from "./format";
+import { formatDuration, formatTotalDuration } from "./format";
 
 describe("formatDuration", () => {
   it("formats seconds under a minute", () => {
@@ -20,5 +20,27 @@ describe("formatDuration", () => {
 
   it("returns null for a negative duration", () => {
     expect(formatDuration(-1)).toBeNull();
+  });
+});
+
+describe("formatTotalDuration", () => {
+  it("formats minutes only", () => {
+    expect(formatTotalDuration(45 * 60 * 1000)).toBe("45 min");
+  });
+
+  it("formats hours and minutes", () => {
+    expect(formatTotalDuration((60 + 23) * 60 * 1000)).toBe("1 hr 23 min");
+  });
+
+  it("omits the minutes part when it's a whole number of hours", () => {
+    expect(formatTotalDuration(2 * 60 * 60 * 1000)).toBe("2 hr");
+  });
+
+  it("handles a sub-minute total", () => {
+    expect(formatTotalDuration(20 * 1000)).toBe("under a minute");
+  });
+
+  it("handles zero", () => {
+    expect(formatTotalDuration(0)).toBe("under a minute");
   });
 });
