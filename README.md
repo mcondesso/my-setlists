@@ -2,6 +2,16 @@
 
 Build and share musical setlists.
 
+Full-stack app — FastAPI/SQLModel backend, Svelte 5/Vite frontend, PostgreSQL
+— with JWT authentication and a CI pipeline (GitHub Actions) enforcing lint,
+formatting, and tests on every push. Coverage spans all three layers: pytest
+(backend), Vitest (frontend unit/component), and Playwright (end-to-end).
+
+One notable piece: Discogs' search API only returns album-level results, so
+`GET /songs/search` fetches each candidate album's full tracklist and scores
+individual tracks against the query to surface the actual song — see
+[Discogs track matching](backend/README.md#discogs-track-matching) for how.
+
 ## Layout
 
 | Path | What |

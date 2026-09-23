@@ -104,6 +104,30 @@ Key patterns:
   itself no longer creates tables — migrations do)
 - **Cascade configuration** is defined via `sa_relationship_kwargs` on relationship fields
 
+### Discogs track matching
+
+Discogs' search API only matches at the release/master (album) level —
+searching "Darkside Heart" would otherwise return the "Psychic" album, not
+the "Heart" track on it. `src/services/discogs.py`'s `search_discogs()`
+works around this:
+
+1. Search masters (albums) as normal, taking the top `CANDIDATE_MASTERS` (8)
+   results.
+2. Fetch each candidate's full tracklist concurrently (`ThreadPoolExecutor`)
+   — this keeps total latency close to that of the slowest single request
+   (~1s) instead of the sum of eight sequential ones (~4-5s).
+3. Score every track against the query with an F1-style word-overlap metric
+   over the track's title + artist (`precision = matched / candidate_words`,
+   `recall = matched / query_words`). Plain character-sequence similarity
+   (`difflib.SequenceMatcher`) was tried first and rejected — it penalizes
+   word reordering so heavily that "Zombie Cranberries" ranked an unrelated
+   Cranberries track above the actual "Zombie".
+4. Return the top-scoring tracks across all candidate masters.
+
+A failed tracklist fetch for one candidate doesn't fail the whole search —
+that master is just skipped in favour of the others. See
+`tests/services/test_discogs.py` for the cases this covers.
+
 ## Database Schema
 
 The database schema is shown below. The diagram was generated with dbdiagram.io:
