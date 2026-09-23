@@ -44,11 +44,26 @@ header {
   border-bottom: 1px solid var(--border);
 }
 
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 .brand {
   font-weight: 700;
   font-size: 1.1rem;
   text-decoration: none;
   color: var(--text);
+}
+
+.github-link {
+  display: flex;
+  color: var(--muted);
+}
+
+.github-link:hover {
+  color: var(--accent);
 }
 
 header nav {
