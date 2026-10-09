@@ -228,3 +228,53 @@ def test_missing_or_unparseable_duration_is_none(monkeypatch, duration) -> None:
     results = discogs.search_discogs("Song", limit=1)
 
     assert results[0].duration_ms is None
+
+
+def test_find_track_returns_a_confident_match(monkeypatch) -> None:
+    monkeypatch.setattr(
+        discogs.httpx,
+        "get",
+        _fake_get_factory(
+            search_results=[
+                {"id": 1, "title": "Paul Field Band - State Of Heart", "uri": "/master/1"},
+                {"id": 2, "title": "Darkside (22) - Psychic", "uri": "/master/2"},
+            ],
+            masters={
+                1: [{"position": "A1", "type_": "track", "title": "Darkside Of The Heart"}],
+                2: [{"position": "B2", "type_": "track", "title": "Heart"}],
+            },
+        ),
+    )
+
+    result = discogs.find_track("Darkside", "Heart")
+
+    assert result is not None
+    assert (result.artist, result.title) == ("Darkside", "Heart")
+
+
+def test_find_track_rejects_a_result_by_another_artist(monkeypatch) -> None:
+    # Regression guard: search_discogs() always returns its best guess, so
+    # without a threshold any suggestion would "match" something.
+    monkeypatch.setattr(
+        discogs.httpx,
+        "get",
+        _fake_get_factory(
+            search_results=[{"id": 1, "title": "Someone Else - Album", "uri": "/master/1"}],
+            masters={1: [{"position": "A1", "type_": "track", "title": "Heart"}]},
+        ),
+    )
+
+    assert discogs.find_track("Darkside", "Heart") is None
+
+
+def test_find_track_ignores_the_and_accents(monkeypatch) -> None:
+    monkeypatch.setattr(
+        discogs.httpx,
+        "get",
+        _fake_get_factory(
+            search_results=[{"id": 1, "title": "Beyonce - Lemonade", "uri": "/master/1"}],
+            masters={1: [{"position": "1", "type_": "track", "title": "Formation"}]},
+        ),
+    )
+
+    assert discogs.find_track("The Beyoncé", "Formation") is not None

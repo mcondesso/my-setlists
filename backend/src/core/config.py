@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     APP_PORT: int
     DISCOGS_API_TOKEN: str
     CORS_ORIGINS: str = "http://localhost:5173"
+    # Optional: without a key, song recommendations report "failed" instead
+    # of the app refusing to start.
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
 
     @property
     def database_url(self) -> str:

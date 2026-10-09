@@ -9,6 +9,7 @@ songs back rather than albums.
 """
 
 import re
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 
 import httpx
@@ -88,6 +89,33 @@ def search_discogs(query: str, limit: int = 5) -> list[DiscogsSearchResult]:
     A failure fetching one master's tracklist is not fatal — that
     candidate is just skipped in favour of the others.
     """
+    return [result for _, result in _scored_tracks(query)[:limit]]
+
+
+def find_track(artist: str, title: str) -> DiscogsSearchResult | None:
+    """
+    Return the best Discogs track for a known artist + title, or None.
+
+    Unlike search_discogs(), which always returns its best guesses, this
+    only accepts a confident match: every word of the title must appear
+    in the track's title and every word of the artist (ignoring "the") in
+    its artist. Used to check that a song suggested elsewhere actually
+    exists rather than settling for whatever ranks first.
+
+    Raises httpx.HTTPError if the Discogs search request fails.
+    """
+    title_words = _words(title)
+    artist_words = _words(artist) - {"the"}
+    if not title_words:
+        return None
+    for _, result in _scored_tracks(f"{artist} {title}"):
+        if title_words <= _words(result.title) and artist_words <= _words(result.artist):
+            return result
+    return None
+
+
+def _scored_tracks(query: str) -> list[tuple[float, DiscogsSearchResult]]:
+    """Every track on the candidate masters for `query`, best match first."""
     masters = _search_masters(query, CANDIDATE_MASTERS)
     if not masters:
         return []
@@ -119,7 +147,7 @@ def search_discogs(query: str, limit: int = 5) -> list[DiscogsSearchResult]:
             )
 
     scored.sort(key=lambda pair: pair[0], reverse=True)
-    return [result for _, result in scored[:limit]]
+    return scored
 
 
 def _search_masters(query: str, limit: int) -> list[_MasterCandidate]:
@@ -230,7 +258,9 @@ def _words(text: str) -> set[str]:
 
 
 def _normalize(text: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+    # Strip accents first ("Beyoncé" -> "beyonce") so they don't split words.
+    ascii_text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", " ", ascii_text.lower()).strip()
 
 
 # Discogs disambiguates same-named artists with a trailing index, e.g.
