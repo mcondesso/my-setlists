@@ -15,7 +15,7 @@ individual tracks against the query to surface the actual song — see
 Each setlist also gets a recommended song: whenever its songs change, a
 background task asks Google Gemini for three songs that fit, then keeps the
 first one it can verify on Discogs — so a song the model made up never
-reaches the page.
+reaches the page. See [Song recommendations](backend/README.md#song-recommendations).
 
 ## Layout
 
@@ -36,6 +36,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 sed -i 's/^ENVIRONMENT=test/ENVIRONMENT=development/' .env   # .env.example defaults to test (in-memory SQLite)
+# then set DISCOGS_API_TOKEN (required) and GEMINI_API_KEY (optional) in .env
 alembic upgrade head
 python main.py                          # http://localhost:8000
 
@@ -46,5 +47,5 @@ cp .env.example .env
 npm run dev                             # http://localhost:5173
 ```
 
-See [`backend/README.md`](backend/README.md) and
-[`frontend/README.md`](frontend/README.md) for details.
+See [`backend/README.md`](backend/README.md#setup) for where to get the API
+keys, and [`frontend/README.md`](frontend/README.md) for frontend details.

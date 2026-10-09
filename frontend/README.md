@@ -45,7 +45,7 @@ src/
     OwnerBadge.svelte   # "by X · Public" line shared by Setlists and SetlistDetail
     RecommendationPanel.svelte  # SetlistDetail's recommended song; polls while pending
   pages/
-    Login.svelte, Register.svelte, Setlists.svelte, SetlistDetail.svelte
+    Login.svelte, Register.svelte, Setlists.svelte, SetlistDetail.svelte, SongDetail.svelte
   App.svelte             # header/nav + route switch
 ```
 
@@ -74,8 +74,21 @@ actually expired, only logging back in gets you a new one.
 
 ## What's covered
 
-Register, login, list setlists (paginated, "Load more"), create a setlist,
-view one with its songs in order, search Discogs and add a result to a
-setlist, remove a song. Song links, editing a setlist's name/visibility, and
-the user's own library setlist have no dedicated UI yet — the API supports
-all of it; only the screens are missing.
+- **Auth:** register, log in, log out; the session refreshes itself while
+  the tab is open.
+- **Setlists list:** your own setlists and other people's public ones, in
+  separate sections, paginated with "Load more"; create a setlist (public
+  or private).
+- **Setlist page:** songs in order with artwork and duration, plus the song
+  count and total playback time. The owner can rename it, edit its
+  description, drag songs to reorder them, remove songs, and search Discogs
+  to add new ones.
+- **Recommendations:** a recommended song below the list (see
+  `RecommendationPanel.svelte`); the owner can add it or refresh it, and
+  visitors see it with Add disabled.
+- **Song page:** artwork, album, year and duration, links out to Discogs and
+  YouTube, and a picker to add the song to one of your own setlists.
+
+Not in the UI yet (the API supports all of these): changing a setlist's
+visibility after creating it, deleting a setlist, and managing a song's
+platform links.
