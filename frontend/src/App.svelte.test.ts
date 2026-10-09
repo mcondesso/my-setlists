@@ -21,7 +21,27 @@ describe("App", () => {
     vi.mocked(fetchMe).mockReset();
   });
 
-  it("shows the login form when there is no stored token", () => {
+  it("shows a logged-out visitor the public setlists, not a login wall", async () => {
+    render(App);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Setlists", level: 1 }),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("heading", { name: "New setlist" })).toBeNull();
+    expect(
+      screen.getByText(
+        "Browse the public setlists below, or log in to create your own.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the login form at #/login", async () => {
+    window.location.hash = "#/login";
+    // hashchange fires asynchronously; let the router see it first.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     render(App);
 
     expect(screen.getByRole("heading", { name: "Log in" })).toBeInTheDocument();
@@ -48,18 +68,15 @@ describe("App", () => {
 
   it("logs back out if a stored token can no longer be verified", async () => {
     // Regression test: a non-401 fetchMe failure (network error, 500) used
-    // to leave auth.token set with auth.user permanently null instead of
-    // returning to the login screen.
+    // to leave auth.token set with auth.user permanently null.
     setToken("stale-token");
     vi.mocked(fetchMe).mockRejectedValue(new Error("network error"));
 
     render(App);
 
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "Log in" }),
-      ).toBeInTheDocument();
-    });
-    expect(auth.token).toBeNull();
+    await waitFor(() => expect(auth.token).toBeNull());
+    expect(
+      screen.getByRole("navigation").querySelector('a[href="#/login"]'),
+    ).toBeInTheDocument();
   });
 });

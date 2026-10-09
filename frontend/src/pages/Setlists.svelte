@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { errorMessage } from "../lib/api";
+  import { auth } from "../lib/auth.svelte";
   import { createSetlist, fetchSetlists } from "../lib/backend";
   import type { Setlist } from "../lib/types";
   import OwnerBadge from "../components/OwnerBadge.svelte";
@@ -85,24 +86,34 @@
 <h1>Setlists</h1>
 {#if error}<p class="error">{error}</p>{/if}
 
-<form class="card narrow" onsubmit={handleCreate}>
-  <h2>New setlist</h2>
-  <label>
-    Name
-    <input bind:value={newName} required />
-  </label>
-  <label>
-    Description
-    <input bind:value={newDescription} />
-  </label>
-  <label class="checkbox">
-    <input type="checkbox" bind:checked={newIsPublic} />
-    Public
-  </label>
-  <button type="submit" disabled={creating}
-    >{creating ? "Creating…" : "Create"}</button
-  >
-</form>
+{#if auth.token}
+  <form class="card narrow" onsubmit={handleCreate}>
+    <h2>New setlist</h2>
+    <label>
+      Name
+      <input bind:value={newName} required />
+    </label>
+    <label>
+      Description
+      <input bind:value={newDescription} />
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" bind:checked={newIsPublic} />
+      Public
+    </label>
+    <button type="submit" disabled={creating}
+      >{creating ? "Creating…" : "Create"}</button
+    >
+  </form>
+{:else}
+  <div class="card narrow cta">
+    <p>Browse the public setlists below, or log in to create your own.</p>
+    <div class="button-row">
+      <a class="button" href="#/login">Log in</a>
+      <a class="button ghost" href="#/register">Register</a>
+    </div>
+  </div>
+{/if}
 
 {#snippet setlistCard(setlist: Setlist)}
   <li>
@@ -135,7 +146,7 @@
   {/if}
 
   {#if publicSetlists.length > 0}
-    <h2 class="section-heading">Public setlists</h2>
+    <h2 class:section-heading={mySetlists.length > 0}>Public setlists</h2>
     <ul class="grid">
       {#each publicSetlists as setlist (setlist.id)}
         {@render setlistCard(setlist)}

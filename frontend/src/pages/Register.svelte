@@ -2,7 +2,7 @@
   import { errorMessage } from "../lib/api";
   import { register } from "../lib/backend";
   import { completeLogin } from "../lib/session";
-  import { navigate } from "../lib/router.svelte";
+  import { navigate, takeReturnPath } from "../lib/router.svelte";
 
   let email = $state("");
   let displayName = $state("");
@@ -17,7 +17,7 @@
     try {
       await register(email, displayName, password);
       await completeLogin(email, password);
-      navigate("/setlists");
+      navigate(takeReturnPath());
     } catch (err) {
       error = errorMessage(err, "Could not register.");
     } finally {

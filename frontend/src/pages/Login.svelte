@@ -1,7 +1,7 @@
 <script lang="ts">
   import { errorMessage } from "../lib/api";
   import { completeLogin } from "../lib/session";
-  import { navigate } from "../lib/router.svelte";
+  import { navigate, takeReturnPath } from "../lib/router.svelte";
 
   let email = $state("");
   let password = $state("");
@@ -14,7 +14,7 @@
     submitting = true;
     try {
       await completeLogin(email, password);
-      navigate("/setlists");
+      navigate(takeReturnPath());
     } catch (err) {
       error = errorMessage(err, "Could not log in.");
     } finally {

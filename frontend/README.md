@@ -63,7 +63,14 @@ the reactive `auth` store — so a failure anywhere in the login sequence never
 leaves the app in a half-authenticated state. The token then lives in
 `localStorage` and is sent as `Authorization: Bearer <token>` on every
 request — no cookies, so no CSRF handling is needed. A 401 response clears
-the stored token and the app falls back to the login screen (see `lib/api.ts`).
+the stored token (see `lib/api.ts`), and `App.svelte` re-renders the current
+page as a logged-out visitor.
+
+Logging in is optional: everything except `#/login` and `#/register` renders
+for logged-out visitors too, who see public setlists and songs read-only
+with "Log in" calls to action in place of the editing controls. The router
+(`lib/router.svelte.ts`) remembers the page a visitor left for `/login` or
+`/register`, and `takeReturnPath()` sends them back there afterwards.
 
 While the app is open, `lib/session.ts`'s `startSessionRefresh()` calls
 `POST /auth/refresh` every 15 minutes to extend the session — without it, a
@@ -74,6 +81,9 @@ actually expired, only logging back in gets you a new one.
 
 ## What's covered
 
+- **Public browsing:** without an account, visitors land on the public
+  setlists and can open any public setlist or song read-only. Logging in
+  from a page returns you to it.
 - **Auth:** register, log in, log out; the session refreshes itself while
   the tab is open.
 - **Setlists list:** your own setlists and other people's public ones, in

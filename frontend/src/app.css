@@ -269,6 +269,35 @@ button.ghost:hover:not(:disabled) {
   background: transparent;
 }
 
+/* A link that looks like a button, for navigation-only calls to action. */
+a.button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 0.35rem;
+  background: var(--accent);
+  color: white;
+  text-decoration: none;
+}
+
+a.button:hover {
+  background: var(--accent-hover);
+}
+
+a.button.ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+a.button.ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cta p {
+  margin: 0 0 0.75rem;
+}
+
 .error {
   color: var(--error);
   font-size: 0.9rem;

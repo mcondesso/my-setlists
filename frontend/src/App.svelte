@@ -32,11 +32,15 @@
 
   function handleLogout(): void {
     logout();
-    navigate("/login");
+    navigate("/setlists");
   }
 
   const setlistMatch = $derived(router.path.match(/^\/setlists\/([^/]+)$/));
   const songMatch = $derived(router.path.match(/^\/songs\/([^/]+)$/));
+  // Logged-in users who land on /login or /register just see the setlists.
+  const authPage = $derived(
+    !auth.token && (router.path === "/login" || router.path === "/register"),
+  );
 </script>
 
 <header>
@@ -68,18 +72,20 @@
   </nav>
 </header>
 
-<main class:auth-layout={!auth.token}>
-  {#if !auth.token}
-    {#if router.path === "/register"}
+<main class:auth-layout={authPage}>
+  <!-- Remount the page when the user logs in or out (including the automatic
+       logout on a 401), so it refetches with the right identity. -->
+  {#key auth.token}
+    {#if authPage && router.path === "/register"}
       <Register />
-    {:else}
+    {:else if authPage}
       <Login />
+    {:else if setlistMatch}
+      <SetlistDetail id={setlistMatch[1]} />
+    {:else if songMatch}
+      <SongDetail id={songMatch[1]} />
+    {:else}
+      <Setlists />
     {/if}
-  {:else if setlistMatch}
-    <SetlistDetail id={setlistMatch[1]} />
-  {:else if songMatch}
-    <SongDetail id={songMatch[1]} />
-  {:else}
-    <Setlists />
-  {/if}
+  {/key}
 </main>
