@@ -22,6 +22,17 @@
    than `development`. Change it if you want `python main.py` to actually
    talk to Postgres.
 
+   Two external API keys go in `.env` too:
+
+   | Variable | Needed for | Where to get it |
+   |----------|------------|-----------------|
+   | `DISCOGS_API_TOKEN` | Song search (required) | [Discogs developer settings](https://www.discogs.com/settings/developers) → "Generate new token" |
+   | `GEMINI_API_KEY` | Song recommendations (optional) | [Google AI Studio](https://aistudio.google.com/apikey) — free tier, no billing needed |
+
+   Without `GEMINI_API_KEY` the app runs normally; setlists just show "No
+   recommendations". `GEMINI_MODEL` picks the Gemini model and defaults to
+   `gemini-3.5-flash-lite`.
+
 ## Running the application
 
 Start the database and other services with Docker Compose:
@@ -127,6 +138,33 @@ works around this:
 A failed tracklist fetch for one candidate doesn't fail the whole search —
 that master is just skipped in favour of the others. See
 `tests/services/test_discogs.py` for the cases this covers.
+
+### Song recommendations
+
+Each setlist has one recommended song, stored in `setlist_recommendations`
+and returned with `GET /setlists/{id}`:
+
+1. Any change to a setlist's songs (adding or removing, from either the
+   setlist or the song endpoints — reordering doesn't count) marks its
+   recommendation `pending` and queues a background task
+   (`src/tasks/recommendations.py`).
+2. The task waits 3 seconds, so a burst of edits costs one Gemini call, then
+   asks Gemini (`src/services/gemini.py`) for 3 songs that fit the setlist,
+   using structured JSON output.
+3. It keeps the first suggestion that `discogs.find_track()` confirms — a
+   strict lookup where every word of the title and artist must match, so a
+   song the model made up never reaches the page. Songs already in the
+   setlist and the previous recommendation are skipped.
+4. Every request gets a new `request_id`; a run only saves its result if
+   its id is still the current one, so out-of-order runs can't overwrite a
+   newer result.
+
+The owner can ask for a different song with
+`POST /setlists/{id}/recommendation/refresh` (rate-limited to 5/minute to
+protect the free-tier quota); anyone who can view the setlist can poll
+`GET /setlists/{id}/recommendation`. The recommendation is stored shaped
+like a Discogs search result rather than as a `Song`, so recommendations
+nobody adds don't linger in the global catalog.
 
 ## Database Schema
 
