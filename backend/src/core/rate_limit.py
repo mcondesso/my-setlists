@@ -26,3 +26,5 @@ limiter = Limiter(
 LOGIN_RATE_LIMIT = "5/minute"
 REGISTER_RATE_LIMIT = "5/minute"
 REFRESH_RATE_LIMIT = "30/minute"
+# Each refresh spends a Gemini call (free-tier quota) and up to ~27 Discogs calls.
+RECOMMENDATION_REFRESH_RATE_LIMIT = "5/minute"

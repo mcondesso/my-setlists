@@ -20,6 +20,7 @@ from src.models.song_link import Platform, SongLink
 from src.models.user import User
 from src.services.discogs import search_discogs
 from src.services.setlists import add_song_to_setlist
+from src.tasks.recommendations import queue_recommendation_update
 from src.tasks.youtube import fetch_and_save_youtube_link
 
 router = APIRouter()
@@ -218,6 +219,9 @@ def create_song(
             add_song_to_setlist(song.id, setlist_id, session)
         session.commit()
 
+    for setlist_id in setlist_ids:
+        queue_recommendation_update(setlist_id, session, background_tasks)
+
     session.refresh(song)
     return song
 
@@ -244,6 +248,7 @@ def update_song(
     song_data: SongUpdate,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
+    background_tasks: BackgroundTasks,
 ) -> Song:
     """
     Update a song's mutable fields and/or its setlist memberships.
@@ -286,6 +291,8 @@ def update_song(
                 session.delete(entry)
 
     session.commit()
+    for setlist_id in {*song_data.setlist_ids_to_add, *song_data.setlist_ids_to_remove}:
+        queue_recommendation_update(setlist_id, session, background_tasks)
     session.refresh(song)
     return song
 
@@ -295,6 +302,7 @@ def delete_song(
     song_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
+    background_tasks: BackgroundTasks,
 ) -> None:
     """
     Remove a song from all of the current user's setlists.
@@ -320,10 +328,12 @@ def delete_song(
         select(Setlist.id).where(Setlist.user_id == current_user.id)
     ).all()
 
+    affected_setlist_ids = []
     for setlist_id in user_setlist_ids:
         entry = session.get(SetlistEntry, (setlist_id, song_id))
         if entry:
             session.delete(entry)
+            affected_setlist_ids.append(setlist_id)
 
     session.flush()
 
@@ -333,3 +343,5 @@ def delete_song(
         session.delete(song)
 
     session.commit()
+    for setlist_id in affected_setlist_ids:
+        queue_recommendation_update(setlist_id, session, background_tasks)

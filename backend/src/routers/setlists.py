@@ -3,13 +3,15 @@
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from sqlalchemy import desc
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from src.core.dependencies import get_current_user
+from src.core.rate_limit import RECOMMENDATION_REFRESH_RATE_LIMIT, limiter
 from src.database import get_session
+from src.models.recommendation import RecommendationRead, SetlistRecommendation
 from src.models.setlist import (
     Setlist,
     SetlistCreate,
@@ -24,6 +26,7 @@ from src.models.setlist import (
 from src.models.song import Song
 from src.models.user import User
 from src.services.setlists import get_next_position
+from src.tasks.recommendations import queue_recommendation_update
 
 router = APIRouter()
 
@@ -151,7 +154,9 @@ def get_setlist(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access this setlist",
         )
-    return SetlistReadWithEntries.from_setlist(setlist, current_user.id)
+    return SetlistReadWithEntries.from_setlist(
+        setlist, current_user.id, session.get(SetlistRecommendation, setlist.id)
+    )
 
 
 @router.patch("/{setlist_id}", response_model=SetlistRead)
@@ -236,11 +241,13 @@ def add_song_to_setlist(
     song_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
+    background_tasks: BackgroundTasks,
 ) -> SetlistEntry:
     """
     Add a song to a setlist.
 
-    The song is appended at the end of the setlist.
+    The song is appended at the end of the setlist, and the setlist's song
+    recommendation is regenerated in the background.
     Raises HTTP 404 if the song does not exist.
     Raises HTTP 400 if the song is already in the setlist.
     """
@@ -268,6 +275,7 @@ def add_song_to_setlist(
     session.add(entry)
     session.commit()
     session.refresh(entry)
+    queue_recommendation_update(setlist.id, session, background_tasks)
     return entry
 
 
@@ -318,12 +326,14 @@ def remove_song_from_setlist(
     song_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
+    background_tasks: BackgroundTasks,
 ) -> None:
     """
     Remove a song from a setlist.
 
     This only removes the connection between the setlist and the song.
     The shared song record remains in the catalog for public browsing.
+    The setlist's song recommendation is regenerated in the background.
     Raises HTTP 404 if the entry does not exist.
     """
     setlist = get_user_setlist(setlist_id, current_user, session)
@@ -337,3 +347,41 @@ def remove_song_from_setlist(
 
     session.delete(entry)
     session.commit()
+    queue_recommendation_update(setlist.id, session, background_tasks)
+
+
+@router.get("/{setlist_id}/recommendation", response_model=RecommendationRead | None)
+def get_recommendation(
+    setlist_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> SetlistRecommendation | None:
+    """
+    Return the setlist's current song recommendation, or null if none has
+    been requested yet. Readable by anyone who can view the setlist; poll it
+    while its status is "pending".
+    """
+    setlist = get_accessible_setlist(setlist_id, current_user, session)
+    return session.get(SetlistRecommendation, setlist.id)
+
+
+@router.post(
+    "/{setlist_id}/recommendation/refresh",
+    response_model=RecommendationRead,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+@limiter.limit(RECOMMENDATION_REFRESH_RATE_LIMIT)
+def refresh_recommendation(
+    request: Request,
+    setlist_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    background_tasks: BackgroundTasks,
+) -> SetlistRecommendation:
+    """
+    Replace the setlist's recommendation with a new one, avoiding the
+    current one. Owner only, since the recommendation is shared by everyone
+    viewing the setlist. Returns immediately with status "pending".
+    """
+    setlist = get_user_setlist(setlist_id, current_user, session)
+    return queue_recommendation_update(setlist.id, session, background_tasks)

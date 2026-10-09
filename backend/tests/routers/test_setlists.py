@@ -1,9 +1,12 @@
 """TestClient coverage for the setlist routes and their response shape."""
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
 import src.app
+from src.core.rate_limit import RECOMMENDATION_REFRESH_RATE_LIMIT, limiter
+from src.services.discogs import DiscogsSearchResult
 
 
 def _create_setlist(client: TestClient, name: str = "Live Set", **fields) -> dict:
@@ -224,3 +227,135 @@ def test_update_missing_setlist_returns_404(authenticated_client: TestClient) ->
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.fixture
+def stub_recommender(monkeypatch):
+    """Gemini suggests two songs, both of which Discogs confirms."""
+    monkeypatch.setattr(
+        "src.tasks.recommendations.suggest_songs",
+        lambda songs, exclude=(): [("ABBA", "Dancing Queen"), ("Toto", "Africa")],
+    )
+    monkeypatch.setattr(
+        "src.tasks.recommendations.find_track",
+        lambda artist, title: DiscogsSearchResult(
+            discogs_id="1-A1",
+            title=title,
+            artist=artist,
+            album="Arrival",
+            release_year=1976,
+            discogs_url=None,
+            thumbnail=None,
+            duration_ms=231000,
+        ),
+    )
+
+
+def test_adding_a_song_generates_a_recommendation(
+    authenticated_client: TestClient, stub_recommender
+) -> None:
+    setlist_id = _create_setlist(authenticated_client)["id"]
+
+    _add_songs(authenticated_client, setlist_id, ["A"])
+
+    # TestClient runs background tasks before returning, so the run is done.
+    detail = authenticated_client.get(f"/setlists/{setlist_id}").json()
+    assert detail["recommendation"]["status"] == "ready"
+    assert detail["recommendation"]["title"] == "Dancing Queen"
+    assert (
+        authenticated_client.get(f"/setlists/{setlist_id}/recommendation").json()
+        == (detail["recommendation"])
+    )
+
+
+def test_removing_a_song_regenerates_the_recommendation(
+    authenticated_client: TestClient,
+) -> None:
+    setlist_id = _create_setlist(authenticated_client)["id"]
+    (song_id,) = _add_songs(authenticated_client, setlist_id, ["A"])
+
+    authenticated_client.delete(f"/setlists/{setlist_id}/songs/{song_id}")
+
+    # The setlist is now empty, so the regenerated recommendation is empty.
+    recommendation = authenticated_client.get(f"/setlists/{setlist_id}/recommendation").json()
+    assert recommendation["status"] == "not_found"
+
+
+def test_reordering_does_not_touch_the_recommendation(authenticated_client: TestClient) -> None:
+    setlist_id = _create_setlist(authenticated_client)["id"]
+    a, b = _add_songs(authenticated_client, setlist_id, ["A", "B"])
+    before = authenticated_client.get(f"/setlists/{setlist_id}/recommendation").json()
+
+    authenticated_client.put(f"/setlists/{setlist_id}/songs/order", json={"song_ids": [b, a]})
+
+    after = authenticated_client.get(f"/setlists/{setlist_id}/recommendation").json()
+    assert after == before
+
+
+def test_a_setlist_without_a_recommendation_returns_null(authenticated_client: TestClient) -> None:
+    setlist_id = _create_setlist(authenticated_client)["id"]
+
+    assert authenticated_client.get(f"/setlists/{setlist_id}").json()["recommendation"] is None
+    assert authenticated_client.get(f"/setlists/{setlist_id}/recommendation").json() is None
+
+
+def test_refresh_returns_pending_then_a_different_song(
+    authenticated_client: TestClient, stub_recommender
+) -> None:
+    setlist_id = _create_setlist(authenticated_client)["id"]
+    _add_songs(authenticated_client, setlist_id, ["A"])
+
+    response = authenticated_client.post(f"/setlists/{setlist_id}/recommendation/refresh")
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+    assert response.json()["status"] == "pending"
+    # Refresh avoids the current recommendation (Dancing Queen).
+    final = authenticated_client.get(f"/setlists/{setlist_id}/recommendation").json()
+    assert (final["status"], final["title"]) == ("ready", "Africa")
+
+
+def test_only_the_owner_can_refresh_but_viewers_can_read(authenticated_client: TestClient) -> None:
+    setlist_id = _create_setlist(authenticated_client, is_public=True)["id"]
+    other_client = _second_user_client()
+
+    refresh = other_client.post(f"/setlists/{setlist_id}/recommendation/refresh")
+    read = other_client.get(f"/setlists/{setlist_id}/recommendation")
+
+    assert refresh.status_code == status.HTTP_403_FORBIDDEN
+    assert read.status_code == status.HTTP_200_OK
+
+
+def test_a_private_setlists_recommendation_is_not_readable_by_others(
+    authenticated_client: TestClient,
+) -> None:
+    setlist_id = _create_setlist(authenticated_client)["id"]
+
+    response = _second_user_client().get(f"/setlists/{setlist_id}/recommendation")
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.fixture
+def rate_limiting_enabled():
+    """Enable the (test-disabled) rate limiter for one test and reset it after."""
+    limiter.enabled = True
+    limiter.reset()
+    try:
+        yield
+    finally:
+        limiter.reset()
+        limiter.enabled = False
+
+
+def test_refresh_is_rate_limited(authenticated_client: TestClient, rate_limiting_enabled) -> None:
+    # Each refresh spends Gemini free-tier quota.
+    setlist_id = _create_setlist(authenticated_client)["id"]
+    limit = int(RECOMMENDATION_REFRESH_RATE_LIMIT.split("/")[0])
+
+    statuses = [
+        authenticated_client.post(f"/setlists/{setlist_id}/recommendation/refresh").status_code
+        for _ in range(limit + 1)
+    ]
+
+    assert statuses[:limit] == [status.HTTP_202_ACCEPTED] * limit
+    assert statuses[limit] == status.HTTP_429_TOO_MANY_REQUESTS

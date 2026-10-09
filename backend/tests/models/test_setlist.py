@@ -1,7 +1,7 @@
 """Setlist route tests covering create, read, update, and delete flows."""
 
 import pytest
-from fastapi import HTTPException
+from fastapi import BackgroundTasks, HTTPException
 from sqlmodel import Session
 
 from src.models.setlist import Setlist, SetlistCreate, SetlistEntry, SetlistUpdate
@@ -126,13 +126,13 @@ def test_add_and_remove_song_from_setlist(session: Session) -> None:
     session.add_all([setlist, song])
     session.commit()
 
-    add_song_to_setlist(setlist.id, song.id, session, user)
+    add_song_to_setlist(setlist.id, song.id, session, user, BackgroundTasks())
     session.commit()
 
     entries = get_setlist_songs(setlist.id, session, user)
     assert len(entries) == 1
 
-    remove_song_from_setlist(setlist.id, song.id, session, user)
+    remove_song_from_setlist(setlist.id, song.id, session, user, BackgroundTasks())
     assert session.get(SetlistEntry, (setlist.id, song.id)) is None
 
 
