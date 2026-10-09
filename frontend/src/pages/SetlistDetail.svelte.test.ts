@@ -105,6 +105,7 @@ describe("SetlistDetail", () => {
     expect(updateSetlist).toHaveBeenCalledWith("a", {
       name: "New Name",
       description: "New description",
+      is_public: false,
     });
   });
 
@@ -136,21 +137,72 @@ describe("SetlistDetail", () => {
       expect(updateSetlist).toHaveBeenCalledWith("a", {
         name: "Old Name",
         description: null,
+        is_public: false,
       }),
     );
   });
 
-  it("does not offer editing for the library setlist", async () => {
-    vi.mocked(fetchSetlist).mockResolvedValue(
-      setlist("a", "Library", { is_library: true }),
+  it("makes a private setlist public from the edit form", async () => {
+    vi.mocked(fetchSetlist).mockResolvedValue(setlist("a", "My Set"));
+    vi.mocked(updateSetlist).mockResolvedValue({
+      id: "a",
+      name: "My Set",
+      description: null,
+      is_public: true,
+      is_library: false,
+      owner_display_name: "Ada",
+      is_owner: true,
+      created_at: "now",
+    });
+
+    render(SetlistDetail, { props: { id: "a" } });
+    await waitFor(() => screen.getByRole("heading", { name: "My Set" }));
+    expect(screen.queryByText("Public")).not.toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    const toggle = screen.getByRole("checkbox", { name: /Public/ });
+    expect(toggle).not.toBeChecked();
+    await fireEvent.click(toggle);
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(updateSetlist).toHaveBeenCalledWith("a", {
+        name: "My Set",
+        description: null,
+        is_public: true,
+      }),
     );
+    // The "Public" badge next to the owner's name reflects the change.
+    await waitFor(() => expect(screen.getByText("Public")).toBeInTheDocument());
+  });
+
+  it("lets the library setlist change only its visibility", async () => {
+    vi.mocked(fetchSetlist).mockResolvedValue(
+      setlist("a", "Library", { is_library: true, is_public: true }),
+    );
+    vi.mocked(updateSetlist).mockResolvedValue({
+      id: "a",
+      name: "Library",
+      description: null,
+      is_public: false,
+      is_library: true,
+      owner_display_name: "Ada",
+      is_owner: true,
+      created_at: "now",
+    });
 
     render(SetlistDetail, { props: { id: "a" } });
     await waitFor(() => screen.getByRole("heading", { name: "Library" }));
 
-    expect(
-      screen.queryByRole("button", { name: "Edit" }),
-    ).not.toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Description")).not.toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("checkbox", { name: /Public/ }));
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(updateSetlist).toHaveBeenCalledWith("a", { is_public: false }),
+    );
   });
 
   it("does not offer editing, adding, or removing on someone else's public setlist", async () => {

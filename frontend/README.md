@@ -91,14 +91,14 @@ actually expired, only logging back in gets you a new one.
   or private).
 - **Setlist page:** songs in order with artwork and duration, plus the song
   count and total playback time. The owner can rename it, edit its
-  description, drag songs to reorder them, remove songs, and search Discogs
-  to add new ones.
+  description, make it public or private, drag songs to reorder them, remove
+  songs, and search Discogs to add new ones. For the Library setlist only
+  the public/private setting can be changed.
 - **Recommendations:** a recommended song below the list (see
   `RecommendationPanel.svelte`); the owner can add it or refresh it, and
   visitors see it with Add disabled.
 - **Song page:** artwork, album, year and duration, links out to Discogs and
   YouTube, and a picker to add the song to one of your own setlists.
 
-Not in the UI yet (the API supports all of these): changing a setlist's
-visibility after creating it, deleting a setlist, and managing a song's
-platform links.
+Not in the UI yet (the API supports both): deleting a setlist, and managing
+a song's platform links.
