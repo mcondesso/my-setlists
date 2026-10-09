@@ -1,6 +1,8 @@
 # My Setlists
 
-Build and share musical setlists.
+Build and share musical setlists. No account is needed to browse: visitors
+can open any public setlist and its songs, and logging in adds creating and
+editing your own.
 
 Full-stack app — FastAPI/SQLModel backend, Svelte 5/Vite frontend, PostgreSQL
 — with JWT authentication and a CI pipeline (GitHub Actions) enforcing lint,

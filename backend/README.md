@@ -75,6 +75,24 @@ SQLite database and no external services are needed.
 
 ## Architecture
 
+### Authentication and public access
+
+Auth is a JWT bearer token from `POST /auth/login`. Most endpoints require
+it, but reading public content doesn't:
+
+| Without a token | Requires a token |
+|-----------------|------------------|
+| `GET /setlists/` (public setlists only) | Creating, editing and deleting setlists |
+| `GET /setlists/{id}`, `/songs`, `/recommendation` (public setlists only) | Adding, removing and reordering songs |
+| `GET /songs/`, `GET /songs/{id}` | Refreshing a recommendation |
+| | `GET /songs/search` (spends Discogs API quota) |
+
+Read endpoints use `get_optional_user` (`src/core/dependencies.py`), which
+returns `None` when no token is sent. A token that is sent but invalid or
+expired still gets a 401, so the frontend notices and logs out instead of
+silently browsing as anonymous. Private setlists are only visible to their
+owner; anyone else, logged in or not, gets a 403.
+
 ### Database Relationships & Cascade Delete
 
 The application uses SQLAlchemy 2.0's cascade delete functionality to automatically clean up related records:
