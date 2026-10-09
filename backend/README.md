@@ -93,6 +93,11 @@ expired still gets a 401, so the frontend notices and logs out instead of
 silently browsing as anonymous. Private setlists are only visible to their
 owner; anyone else, logged in or not, gets a 403.
 
+A setlist is private unless created with `is_public: true`, and its owner
+can switch it either way later with `PATCH /setlists/{id}`
+(`{"is_public": true}`). That includes the Library setlist, even though its
+name and description can't be changed.
+
 ### Database Relationships & Cascade Delete
 
 The application uses SQLAlchemy 2.0's cascade delete functionality to automatically clean up related records:

@@ -85,7 +85,8 @@ Each `src/models/*.py` holds the SQLModel table class **and** its API schemas
 
 - **Library setlist**: every user gets one auto-created at registration with
   `is_library=True`. It cannot be renamed, have its description changed, or be deleted
-  (enforced in `routers/setlists.py`).
+  (enforced in `routers/setlists.py`) — but its visibility (`is_public`) can be toggled
+  like any other setlist's.
 - **Songs are global and deduplicated** by a `UniqueConstraint(title, artist)`. Creating
   a song that already exists reuses the existing row, backfilling any of its
   thumbnail/album/release_year/duration_ms left empty by that earlier save (never
@@ -95,8 +96,10 @@ Each `src/models/*.py` holds the SQLModel table class **and** its API schemas
   `setlist_id + song_id`, plus `position` for ordering).
 - **Song authorization** is implicit: a user may modify/delete a song only if it appears
   in one of their own setlists (`user_has_song_access` in `routers/songs.py`).
-- **Visibility**: setlists are private unless `is_public=True`; public ones are readable
-  by anyone, **including logged-out visitors**, but only mutable by the owner. The read
+- **Visibility**: setlists are private unless `is_public=True`, set at creation and
+  switchable later by the owner via `PATCH /setlists/{id}` (the frontend's edit form has
+  a "Public" checkbox). Public ones are readable by anyone, **including logged-out
+  visitors**, but only mutable by the owner. The read
   endpoints (`GET /setlists/`, `/setlists/{id}`, `/setlists/{id}/songs`,
   `/setlists/{id}/recommendation`, `/songs/`, `/songs/{id}`) work without a token;
   everything that writes — and `/songs/search`, which spends Discogs quota — requires one.
