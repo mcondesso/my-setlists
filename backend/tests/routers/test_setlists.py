@@ -178,8 +178,67 @@ def test_library_setlist_cannot_be_deleted(authenticated_client: TestClient) -> 
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-def test_setlists_require_authentication(client: TestClient) -> None:
-    assert client.get("/setlists/").status_code == status.HTTP_401_UNAUTHORIZED
+def test_changing_setlists_requires_authentication(client: TestClient) -> None:
+    assert client.post("/setlists/", json={"name": "X"}).status_code == (
+        status.HTTP_401_UNAUTHORIZED
+    )
+
+
+def test_logged_out_visitors_see_only_public_setlists(
+    client: TestClient, authenticated_client: TestClient
+) -> None:
+    # `client` and `authenticated_client` share one TestClient whose auth
+    # header the latter sets, so use a fresh client for the visitor.
+    public = _create_setlist(authenticated_client, "Public Set", is_public=True)
+    private = _create_setlist(authenticated_client, "Private Set")
+    visitor = TestClient(src.app.app)
+
+    listed = visitor.get("/setlists/")
+    assert listed.status_code == status.HTTP_200_OK
+    assert [s["name"] for s in listed.json()] == ["Public Set"]
+    assert listed.json()[0]["is_owner"] is False
+
+    detail = visitor.get(f"/setlists/{public['id']}")
+    assert detail.status_code == status.HTTP_200_OK
+    assert detail.json()["is_owner"] is False
+    assert visitor.get(f"/setlists/{public['id']}/songs").status_code == status.HTTP_200_OK
+    assert visitor.get(f"/setlists/{public['id']}/recommendation").status_code == (
+        status.HTTP_200_OK
+    )
+
+    for path in ("", "/songs", "/recommendation"):
+        assert visitor.get(f"/setlists/{private['id']}{path}").status_code == (
+            status.HTTP_403_FORBIDDEN
+        )
+
+
+def test_logged_out_visitors_cannot_change_a_public_setlist(
+    authenticated_client: TestClient,
+) -> None:
+    setlist_id = _create_setlist(authenticated_client, is_public=True)["id"]
+    (song_id,) = _add_songs(authenticated_client, setlist_id, ["A"])
+    visitor = TestClient(src.app.app)
+
+    responses = [
+        visitor.patch(f"/setlists/{setlist_id}", json={"name": "Hacked"}),
+        visitor.delete(f"/setlists/{setlist_id}"),
+        visitor.delete(f"/setlists/{setlist_id}/songs/{song_id}"),
+        visitor.put(f"/setlists/{setlist_id}/songs/order", json={"song_ids": [song_id]}),
+        visitor.post(f"/setlists/{setlist_id}/recommendation/refresh"),
+    ]
+
+    assert {r.status_code for r in responses} == {status.HTTP_401_UNAUTHORIZED}
+
+
+def test_an_invalid_token_is_rejected_even_on_public_reads(
+    authenticated_client: TestClient,
+) -> None:
+    # A stale token must not silently degrade to anonymous: the 401 is what
+    # tells the frontend to log out.
+    setlist_id = _create_setlist(authenticated_client, is_public=True)["id"]
+    visitor = TestClient(src.app.app, headers={"Authorization": "Bearer not-a-real-token"})
+
+    assert visitor.get(f"/setlists/{setlist_id}").status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_update_setlist_name_and_description(authenticated_client: TestClient) -> None:

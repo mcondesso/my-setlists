@@ -221,3 +221,19 @@ def test_song_endpoints_that_change_setlists_regenerate_recommendations(
     authenticated_client.delete(f"/songs/{song['id']}")
     assert _recommendation(authenticated_client, setlist_b)["status"] == "not_found"
     assert calls == []  # an empty setlist never reaches Gemini
+
+
+def test_a_song_is_readable_without_logging_in(
+    client: TestClient, authenticated_client: TestClient
+) -> None:
+    song = _create_song(authenticated_client, "Time", "Pink Floyd")
+
+    response = TestClient(client.app).get(f"/songs/{song['id']}")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["title"] == "Time"
+
+
+def test_discogs_search_still_requires_logging_in(client: TestClient) -> None:
+    # Each search spends Discogs API quota.
+    assert client.get("/songs/search", params={"q": "x"}).status_code == 401

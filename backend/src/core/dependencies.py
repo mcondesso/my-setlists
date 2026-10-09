@@ -12,6 +12,8 @@ from src.database import get_session
 from src.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+# Same scheme, but a missing Authorization header yields None instead of a 401.
+optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 def authenticate_user(session: Session, email: str, password: str) -> User | None:
@@ -57,3 +59,19 @@ def get_current_user(
         raise credentials_exception
 
     return user
+
+
+def get_optional_user(
+    token: Annotated[str | None, Depends(optional_oauth2_scheme)],
+    session: Annotated[Session, Depends(get_session)],
+) -> User | None:
+    """
+    Like get_current_user, but for endpoints that also serve logged-out
+    visitors: returns None when no token is sent.
+
+    A token that *is* sent but is invalid or expired still raises 401 rather
+    than silently degrading to anonymous, so the client notices and logs out.
+    """
+    if token is None:
+        return None
+    return get_current_user(token, session)

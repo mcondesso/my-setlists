@@ -96,7 +96,10 @@ Each `src/models/*.py` holds the SQLModel table class **and** its API schemas
 - **Song authorization** is implicit: a user may modify/delete a song only if it appears
   in one of their own setlists (`user_has_song_access` in `routers/songs.py`).
 - **Visibility**: setlists are private unless `is_public=True`; public ones are readable
-  by any authenticated user but only mutable by the owner.
+  by anyone, **including logged-out visitors**, but only mutable by the owner. The read
+  endpoints (`GET /setlists/`, `/setlists/{id}`, `/setlists/{id}/songs`,
+  `/setlists/{id}/recommendation`, `/songs/`, `/songs/{id}`) work without a token;
+  everything that writes — and `/songs/search`, which spends Discogs quota — requires one.
 
 ### Schema & migrations
 
@@ -118,7 +121,9 @@ running `PRAGMA foreign_keys=ON`. Keep both sides in sync when adding relationsh
 
 OAuth2 password flow with JWT (HS256, `src/core/security.py`). Token `sub` claim is the
 user's UUID string. `get_current_user` (in `src/core/dependencies.py`) is the auth
-dependency for protected routes. `/auth/login` takes **form data**
+dependency for protected routes; `get_optional_user` is its variant for public reads —
+it returns `None` when no token is sent, but still 401s on an invalid or expired one,
+so a stale token isn't silently treated as anonymous. `/auth/login` takes **form data**
 (`OAuth2PasswordRequestForm`); `/auth/register` takes JSON. `/auth/refresh` (protected,
 takes no body) exchanges a still-valid token for a new one with a fresh expiry — there's
 no separate longer-lived refresh token, so this can't revive an already-expired one; the

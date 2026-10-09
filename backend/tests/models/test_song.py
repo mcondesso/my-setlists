@@ -65,12 +65,11 @@ def test_get_songs_paginates(session: Session) -> None:
 
 
 def test_get_song_returns_song_by_id(session: Session) -> None:
-    user = User(email="viewer3@example.com", display_name="Viewer3", password="secret")
     song = Song(title="Song", artist="Artist")
-    session.add_all([user, song])
+    session.add(song)
     session.commit()
 
-    result = get_song(song.id, session, user)
+    result = get_song(song.id, session)
 
     assert result.id == song.id
 
