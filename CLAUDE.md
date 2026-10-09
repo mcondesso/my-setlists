@@ -22,6 +22,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Cross-cutting notes
 
+- Public reads: public setlists and songs are readable without logging in — the
+  backend's read endpoints use `get_optional_user`, and the frontend renders every
+  page except `#/login`/`#/register` for logged-out visitors. Write endpoints still
+  require a token on both sides.
 - Auth between the two: the backend issues a JWT (`POST /auth/login`); the
   frontend stores it in `localStorage` and sends it as `Authorization: Bearer`
   — no cookies, no CSRF handling needed on either side. While a tab stays

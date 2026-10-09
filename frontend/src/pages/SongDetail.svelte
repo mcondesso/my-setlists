@@ -1,5 +1,6 @@
 <script lang="ts">
   import { errorMessage } from "../lib/api";
+  import { auth } from "../lib/auth.svelte";
   import {
     addExistingSongToSetlist,
     fetchSetlists,
@@ -30,7 +31,8 @@
     try {
       const [songResult, setlists] = await Promise.all([
         fetchSong(songId),
-        fetchSetlists(200, 0),
+        // Visitors have no setlists to add to, so skip the request.
+        auth.token ? fetchSetlists(200, 0) : Promise.resolve([]),
       ]);
       if (thisLoad !== loadToken) return;
       song = songResult;
@@ -143,23 +145,33 @@
     </ul>
   {/if}
 
-  <form class="card narrow" onsubmit={handleAdd}>
-    <h2>Add to one of your setlists</h2>
-    {#if mySetlists.length === 0}
-      <p class="hint">You don't have any setlists yet.</p>
-    {:else}
-      <label>
-        Setlist
-        <select bind:value={selectedSetlistId}>
-          {#each mySetlists as setlist (setlist.id)}
-            <option value={setlist.id}>{setlist.name}</option>
-          {/each}
-        </select>
-      </label>
-      <button type="submit" disabled={adding}
-        >{adding ? "Adding…" : "Add"}</button
-      >
-      {#if addMessage}<p class="hint">{addMessage}</p>{/if}
-    {/if}
-  </form>
+  {#if !auth.token}
+    <div class="card narrow cta">
+      <p>Log in to add this song to one of your setlists.</p>
+      <div class="button-row">
+        <a class="button" href="#/login">Log in</a>
+        <a class="button ghost" href="#/register">Register</a>
+      </div>
+    </div>
+  {:else}
+    <form class="card narrow" onsubmit={handleAdd}>
+      <h2>Add to one of your setlists</h2>
+      {#if mySetlists.length === 0}
+        <p class="hint">You don't have any setlists yet.</p>
+      {:else}
+        <label>
+          Setlist
+          <select bind:value={selectedSetlistId}>
+            {#each mySetlists as setlist (setlist.id)}
+              <option value={setlist.id}>{setlist.name}</option>
+            {/each}
+          </select>
+        </label>
+        <button type="submit" disabled={adding}
+          >{adding ? "Adding…" : "Add"}</button
+        >
+        {#if addMessage}<p class="hint">{addMessage}</p>{/if}
+      {/if}
+    </form>
+  {/if}
 {/if}

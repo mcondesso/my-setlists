@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { navigate, router } from "./router.svelte";
+import { navigate, router, takeReturnPath } from "./router.svelte";
 
 async function flush(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -38,5 +38,37 @@ describe("router", () => {
     window.location.hash = "";
     await flush();
     expect(router.path).toBe("/setlists");
+  });
+});
+
+describe("return path after logging in", () => {
+  it("remembers the page the visitor left for /login", async () => {
+    navigate("/setlists/abc-123");
+    await flush();
+    navigate("/login");
+    await flush();
+
+    expect(takeReturnPath()).toBe("/setlists/abc-123");
+  });
+
+  it("keeps the original page when hopping between /login and /register", async () => {
+    navigate("/songs/xyz");
+    await flush();
+    navigate("/login");
+    await flush();
+    navigate("/register");
+    await flush();
+
+    expect(takeReturnPath()).toBe("/songs/xyz");
+  });
+
+  it("is used once, then falls back to /setlists", async () => {
+    navigate("/songs/xyz");
+    await flush();
+    navigate("/login");
+    await flush();
+
+    takeReturnPath();
+    expect(takeReturnPath()).toBe("/setlists");
   });
 });

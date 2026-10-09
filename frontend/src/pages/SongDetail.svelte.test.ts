@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { logout, setToken } from "../lib/auth.svelte";
 import type { Setlist, Song } from "../lib/types";
 
 vi.mock("../lib/backend", async (importOriginal) => {
@@ -47,6 +48,29 @@ function setlist(id: string, name: string, isOwner: boolean): Setlist {
 }
 
 describe("SongDetail", () => {
+  beforeEach(() => {
+    setToken("token");
+  });
+
+  afterEach(() => {
+    logout();
+  });
+
+  it("asks a logged-out visitor to log in instead of offering setlists", async () => {
+    logout();
+    vi.mocked(fetchSong).mockResolvedValue(song());
+    vi.mocked(fetchSetlists).mockClear();
+
+    render(SongDetail, { props: { id: "song-1" } });
+    await waitFor(() => screen.getByRole("heading", { name: "Heart" }));
+
+    expect(
+      screen.getByText("Log in to add this song to one of your setlists."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(fetchSetlists).not.toHaveBeenCalled();
+  });
+
   it("shows the song's title, artist, album, and year", async () => {
     vi.mocked(fetchSong).mockResolvedValue(
       song({ album: "Psychic", release_year: 2013, artist: "Darkside" }),
