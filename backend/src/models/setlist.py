@@ -9,6 +9,7 @@ from sqlalchemy import Column, DateTime, func
 from sqlalchemy.orm import Mapped
 from sqlmodel import Field, Relationship, SQLModel
 
+from src.models.recommendation import RecommendationRead, SetlistRecommendation
 from src.models.song import SongReadWithLinks
 
 if TYPE_CHECKING:
@@ -146,11 +147,20 @@ class SetlistReadWithEntries(SQLModel):
     is_public: bool
     created_at: datetime
     entries: list[SetlistEntryReadWithSong] = []
+    recommendation: RecommendationRead | None = None
 
     @classmethod
-    def from_setlist(cls, setlist: "Setlist", current_user_id: UUID) -> "SetlistReadWithEntries":
+    def from_setlist(
+        cls,
+        setlist: "Setlist",
+        current_user_id: UUID,
+        recommendation: SetlistRecommendation | None = None,
+    ) -> "SetlistReadWithEntries":
         """Build a SetlistReadWithEntries from a Setlist ORM object."""
         return cls(
+            recommendation=RecommendationRead.model_validate(recommendation, from_attributes=True)
+            if recommendation
+            else None,
             id=setlist.id,
             name=setlist.name,
             description=setlist.description,

@@ -99,6 +99,7 @@ def test_update_song_adds_and_removes_setlist_entries(session: Session) -> None:
         ),
         session,
         user,
+        BackgroundTasks(),
     )
 
     assert updated.id == song.id
@@ -124,7 +125,7 @@ def test_delete_song_deletes_globally_when_no_remaining_entries(
     session.add(SetlistEntry(setlist_id=setlist.id, song_id=song.id, position=1))
     session.commit()
 
-    delete_song(song.id, session, user)
+    delete_song(song.id, session, user, BackgroundTasks())
 
     assert session.get(SetlistEntry, (setlist.id, song.id)) is None
     assert session.get(Song, song.id) is None
@@ -153,7 +154,7 @@ def test_delete_song_keeps_song_if_other_user_has_entry(session: Session) -> Non
     )
     session.commit()
 
-    delete_song(song.id, session, user1)
+    delete_song(song.id, session, user1, BackgroundTasks())
 
     assert session.get(SetlistEntry, (s1.id, song.id)) is None
     assert session.get(SetlistEntry, (s2.id, song.id)) is not None

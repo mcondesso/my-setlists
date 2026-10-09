@@ -182,3 +182,42 @@ def test_list_songs_rejects_out_of_range_limit(authenticated_client: TestClient)
     response = authenticated_client.get("/songs/", params={"limit": 0})
 
     assert response.status_code == 422
+
+
+def _recommendation(client: TestClient, setlist_id: str) -> dict | None:
+    return client.get(f"/setlists/{setlist_id}/recommendation").json()
+
+
+def test_song_endpoints_that_change_setlists_regenerate_recommendations(
+    authenticated_client: TestClient, monkeypatch
+) -> None:
+    calls = []
+
+    def suggest(songs, exclude=()):
+        calls.append(list(songs))
+        return []
+
+    monkeypatch.setattr("src.tasks.recommendations.suggest_songs", suggest)
+    setlist_a = authenticated_client.post("/setlists/", json={"name": "A"}).json()["id"]
+    setlist_b = authenticated_client.post("/setlists/", json={"name": "B"}).json()["id"]
+
+    # POST /songs with setlist_ids
+    song = authenticated_client.post(
+        "/songs/", json={"title": "Time", "artist": "Pink Floyd", "setlist_ids": [setlist_a]}
+    ).json()
+    assert _recommendation(authenticated_client, setlist_a)["status"] == "not_found"
+    assert calls[-1] == [("Pink Floyd", "Time")]
+
+    # PATCH /songs moving it from A to B regenerates both
+    authenticated_client.patch(
+        f"/songs/{song['id']}",
+        json={"setlist_ids_to_add": [setlist_b], "setlist_ids_to_remove": [setlist_a]},
+    )
+    assert _recommendation(authenticated_client, setlist_b) is not None
+    assert [("Pink Floyd", "Time")] in calls[1:]
+
+    # DELETE /songs empties B, so its regenerated recommendation is empty
+    calls.clear()
+    authenticated_client.delete(f"/songs/{song['id']}")
+    assert _recommendation(authenticated_client, setlist_b)["status"] == "not_found"
+    assert calls == []  # an empty setlist never reaches Gemini

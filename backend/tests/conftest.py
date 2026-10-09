@@ -91,6 +91,23 @@ def stub_youtube_lookup(monkeypatch):
     )
 
 
+@pytest.fixture(autouse=True)
+def stub_recommendation_lookup(monkeypatch):
+    """
+    Keep the background recommendation task off the network and instant.
+
+    Defaults to Gemini suggesting nothing (the run ends NOT_FOUND); tests
+    that need suggestions monkeypatch src.tasks.recommendations.suggest_songs
+    and find_track themselves.
+    """
+    monkeypatch.setattr("src.tasks.recommendations.DEBOUNCE_SECONDS", 0)
+    monkeypatch.setattr(
+        "src.tasks.recommendations.suggest_songs",
+        lambda songs, exclude=(): [],
+    )
+    monkeypatch.setattr("src.tasks.recommendations.find_track", lambda artist, title: None)
+
+
 @pytest.fixture
 def client(test_engine):
     """

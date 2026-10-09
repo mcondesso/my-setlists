@@ -47,7 +47,8 @@ format check, ruff lint, pytest, and an Alembic drift check (`alembic upgrade he
 ## Configuration
 
 `src/core/config.py` defines a pydantic-settings `Settings` loaded from `.env`. Most
-fields are required (no defaults except `ENVIRONMENT` and `CORS_ORIGINS`), so a fresh
+fields are required (no defaults except `ENVIRONMENT`, `CORS_ORIGINS`, and the optional
+`GEMINI_API_KEY` / `GEMINI_MODEL` — see below), so a fresh
 clone needs `cp .env.example .env` before anything runs. The `settings.database_url`
 **property** — not the raw `DATABASE_URL` field — is what the engine uses: when
 `ENVIRONMENT == "test"` it returns `sqlite:///:memory:`, otherwise `DATABASE_URL`.
@@ -145,6 +146,19 @@ value in the path (one link per song per platform).
   on the engine `create_song` passes it (`session.get_bind()`), so it writes to the same
   database as the request; failures are logged, never raised. An autouse conftest fixture
   stubs the lookup so tests never hit the network.
+- `src/services/gemini.py` — `suggest_songs()` asks Gemini (REST `generateContent`,
+  structured JSON output) for 3 songs that fit a setlist. Needs `GEMINI_API_KEY`;
+  without one it raises `GeminiNotConfiguredError` rather than the app failing to start.
+- `src/tasks/recommendations.py` — keeps one `SetlistRecommendation` row per setlist.
+  `queue_recommendation_update()` is called after **every** change to a setlist's
+  songs (add/remove in `routers/setlists.py`; `POST`/`PATCH`/`DELETE` in
+  `routers/songs.py` — not reorder) and by the owner-only refresh endpoint. It marks the
+  row `pending` with a new `request_id` and queues `update_recommendation()`, which
+  debounces, asks Gemini, and stores the first suggestion `discogs.find_track()` confirms
+  (a strict match, unlike `search_discogs()`), skipping songs already in the setlist and
+  the previous recommendation. A run saves nothing if a newer `request_id` has replaced
+  its own — that's what keeps out-of-order runs from clobbering each other. An autouse
+  conftest fixture stubs Gemini/Discogs and zeroes the debounce.
 
 ## Tests
 
