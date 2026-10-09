@@ -9,6 +9,8 @@ vi.mock("../lib/backend", async (importOriginal) => {
     fetchSetlist: vi.fn(),
     updateSetlist: vi.fn(),
     reorderSetlistSongs: vi.fn(),
+    fetchRecommendation: vi.fn().mockResolvedValue(null),
+    refreshRecommendation: vi.fn(),
   };
 });
 
@@ -34,6 +36,7 @@ function setlist(
     is_owner: true,
     created_at: "now",
     entries: [],
+    recommendation: null,
     ...overrides,
   };
 }
