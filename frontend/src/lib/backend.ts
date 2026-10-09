@@ -4,6 +4,7 @@
 import { api } from "./api";
 import type {
   DiscogsSearchResult,
+  Recommendation,
   Setlist,
   SetlistWithEntries,
   Song,
@@ -127,4 +128,17 @@ export function addExistingSongToSetlist(
   songId: string,
 ): Promise<void> {
   return api.post(`/setlists/${setlistId}/songs/${songId}`);
+}
+
+export function fetchRecommendation(
+  setlistId: string,
+): Promise<Recommendation | null> {
+  return api.get(`/setlists/${setlistId}/recommendation`);
+}
+
+/** Owner only. Returns at once with status "pending"; poll fetchRecommendation. */
+export function refreshRecommendation(
+  setlistId: string,
+): Promise<Recommendation> {
+  return api.post(`/setlists/${setlistId}/recommendation/refresh`);
 }

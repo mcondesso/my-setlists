@@ -122,6 +122,25 @@ h1 {
   gap: 0.75rem;
 }
 
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.section-title h2 {
+  margin: 0;
+}
+
+.recommendation {
+  margin-bottom: 1.5rem;
+}
+
+.recommendation .songs {
+  margin-bottom: 0;
+}
+
 h2 {
   margin: 0 0 0.75rem;
   font-size: 1.1rem;

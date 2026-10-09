@@ -2,6 +2,7 @@
   import { errorMessage } from "../lib/api";
   import {
     addSongToSetlist,
+    fetchRecommendation,
     fetchSetlist,
     removeSongFromSetlist,
     reorderSetlistSongs,
@@ -11,6 +12,7 @@
   import { formatDuration, formatTotalDuration } from "../lib/format";
   import type { DiscogsSearchResult, SetlistWithEntries } from "../lib/types";
   import OwnerBadge from "../components/OwnerBadge.svelte";
+  import RecommendationPanel from "../components/RecommendationPanel.svelte";
 
   let { id }: { id: string } = $props();
 
@@ -107,6 +109,9 @@
         setlist.entries = setlist.entries.filter(
           (entry) => entry.song_id !== songId,
         );
+        // Removing a song regenerates the recommendation; pick up the
+        // pending state so the panel starts polling.
+        setlist.recommendation = await fetchRecommendation(id);
       }
     } catch (err) {
       error = errorMessage(err, "Could not remove song.");
@@ -281,6 +286,16 @@
       </li>
     {/each}
   </ol>
+
+  <RecommendationPanel
+    setlistId={setlist.id}
+    isOwner={setlist.is_owner}
+    hasSongs={songCount > 0}
+    bind:recommendation={setlist.recommendation}
+    adding={addingId !== null &&
+      addingId === setlist.recommendation?.discogs_id}
+    onadd={handleAdd}
+  />
 
   {#if setlist.is_owner}
     <form class="card narrow search" onsubmit={handleSearch}>

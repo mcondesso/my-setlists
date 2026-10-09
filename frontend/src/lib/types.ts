@@ -56,6 +56,22 @@ export interface Setlist {
 
 export interface SetlistWithEntries extends Setlist {
   entries: SetlistEntry[];
+  recommendation: Recommendation | null;
+}
+
+export type RecommendationStatus = "pending" | "ready" | "not_found" | "failed";
+
+/** Matches RecommendationRead. Song fields are set only when status is "ready". */
+export interface Recommendation {
+  status: RecommendationStatus;
+  title: string | null;
+  artist: string | null;
+  album: string | null;
+  release_year: number | null;
+  duration_ms: number | null;
+  thumbnail: string | null;
+  discogs_id: string | null;
+  discogs_url: string | null;
 }
 
 export interface DiscogsSearchResult {
