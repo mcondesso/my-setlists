@@ -12,6 +12,11 @@ One notable piece: Discogs' search API only returns album-level results, so
 individual tracks against the query to surface the actual song — see
 [Discogs track matching](backend/README.md#discogs-track-matching) for how.
 
+Each setlist also gets a recommended song: whenever its songs change, a
+background task asks Google Gemini for three songs that fit, then keeps the
+first one it can verify on Discogs — so a song the model made up never
+reaches the page.
+
 ## Layout
 
 | Path | What |
