@@ -230,9 +230,8 @@ def create_song(
 def get_song(
     song_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
 ) -> SongReadWithLinks:
-    """Return a single song by ID."""
+    """Return a single song by ID. Public, like the global song list."""
     song = session.get(Song, song_id)
     if not song:
         raise HTTPException(

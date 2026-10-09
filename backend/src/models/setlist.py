@@ -63,7 +63,7 @@ class SetlistRead(SetlistBase):
     created_at: datetime
 
     @classmethod
-    def from_setlist(cls, setlist: "Setlist", current_user_id: UUID) -> "SetlistRead":
+    def from_setlist(cls, setlist: "Setlist", current_user_id: UUID | None) -> "SetlistRead":
         """Build a SetlistRead from a Setlist ORM object."""
         return cls(
             id=setlist.id,
@@ -153,7 +153,7 @@ class SetlistReadWithEntries(SQLModel):
     def from_setlist(
         cls,
         setlist: "Setlist",
-        current_user_id: UUID,
+        current_user_id: UUID | None,
         recommendation: SetlistRecommendation | None = None,
     ) -> "SetlistReadWithEntries":
         """Build a SetlistReadWithEntries from a Setlist ORM object."""

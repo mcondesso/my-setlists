@@ -8,7 +8,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
-from src.core.dependencies import get_current_user
+from src.core.dependencies import get_current_user, get_optional_user
 from src.core.rate_limit import RECOMMENDATION_REFRESH_RATE_LIMIT, limiter
 from src.database import get_session
 from src.models.recommendation import RecommendationRead, SetlistRecommendation
@@ -57,17 +57,22 @@ def get_user_setlist(
 
 def get_accessible_setlist(
     setlist_id: UUID,
-    current_user: User,
+    current_user: User | None,
     session: Session,
 ) -> Setlist:
-    """Fetch a setlist if it is public or owned by the current user."""
+    """
+    Fetch a setlist if it is public or owned by the current user.
+
+    `current_user` is None for a logged-out visitor, who can only see
+    public setlists. Raises HTTP 404 if not found, HTTP 403 otherwise.
+    """
     setlist = session.get(Setlist, setlist_id)
     if not setlist:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Setlist not found",
         )
-    if setlist.is_public or setlist.user_id == current_user.id:
+    if setlist.is_public or (current_user and setlist.user_id == current_user.id):
         return setlist
 
     raise HTTPException(
@@ -79,32 +84,30 @@ def get_accessible_setlist(
 @router.get("/", response_model=list[SetlistRead])
 def get_setlists(
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User | None, Depends(get_optional_user)],
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[SetlistRead]:
     """
     Return the setlists visible to the current user, newest first, with the
-    user's own setlists ahead of public ones from others. Paginated via
-    limit (max 200) and offset. Song entries are omitted here; fetch a
-    single setlist to get them.
+    user's own setlists ahead of public ones from others. A logged-out
+    visitor gets only the public ones. Paginated via limit (max 200) and
+    offset. Song entries are omitted here; fetch a single setlist to get them.
     """
+    user_id = current_user.id if current_user else None
+    is_mine = Setlist.user_id == user_id
+    visible = Setlist.is_public == True  # noqa: E712
     statement = (
         select(Setlist)
-        .where(
-            (Setlist.user_id == current_user.id) | (Setlist.is_public == True)  # noqa: E712
-        )
+        .where(visible | is_mine if user_id else visible)
         # from_setlist reads setlist.user; eager-load it to avoid a query per row.
         .options(selectinload(Setlist.user))
-        .order_by(
-            (Setlist.user_id == current_user.id).desc(),
-            Setlist.created_at.desc(),
-        )
+        .order_by(is_mine.desc(), Setlist.created_at.desc())
         .offset(offset)
         .limit(limit)
     )
     setlists = session.exec(statement).all()
-    return [SetlistRead.from_setlist(s, current_user.id) for s in setlists]
+    return [SetlistRead.from_setlist(s, user_id) for s in setlists]
 
 
 @router.post("/", response_model=SetlistRead, status_code=status.HTTP_201_CREATED)
@@ -135,27 +138,19 @@ def create_setlist(
 def get_setlist(
     setlist_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User | None, Depends(get_optional_user)],
 ) -> Setlist:
     """
     Return a single setlist by ID.
 
-    Public setlists are accessible by any authenticated user.
+    Public setlists are readable by anyone, including logged-out visitors.
     Private setlists are only accessible by their owner.
     """
-    setlist = session.get(Setlist, setlist_id)
-    if not setlist:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Setlist not found",
-        )
-    if not setlist.is_public and setlist.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this setlist",
-        )
+    setlist = get_accessible_setlist(setlist_id, current_user, session)
     return SetlistReadWithEntries.from_setlist(
-        setlist, current_user.id, session.get(SetlistRecommendation, setlist.id)
+        setlist,
+        current_user.id if current_user else None,
+        session.get(SetlistRecommendation, setlist.id),
     )
 
 
@@ -216,7 +211,7 @@ def delete_setlist(
 def get_setlist_songs(
     setlist_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User | None, Depends(get_optional_user)],
     order: Literal["position", "recent"] = "position",
 ) -> list[SetlistEntry]:
     """
@@ -354,7 +349,7 @@ def remove_song_from_setlist(
 def get_recommendation(
     setlist_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User | None, Depends(get_optional_user)],
 ) -> SetlistRecommendation | None:
     """
     Return the setlist's current song recommendation, or null if none has
