@@ -35,6 +35,7 @@
   let editing = $state(false);
   let editName = $state("");
   let editDescription = $state("");
+  let editIsPublic = $state(false);
   let saving = $state(false);
 
   let query = $state("");
@@ -76,6 +77,7 @@
     if (!setlist) return;
     editName = setlist.name;
     editDescription = setlist.description ?? "";
+    editIsPublic = setlist.is_public;
     editing = true;
   }
 
@@ -85,14 +87,22 @@
 
   async function handleSaveEdit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
-    if (!setlist || !editName.trim()) return;
+    if (!setlist || (!setlist.is_library && !editName.trim())) return;
     saving = true;
     error = "";
     try {
-      const updated = await updateSetlist(setlist.id, {
-        name: editName.trim(),
-        description: editDescription.trim() || null,
-      });
+      // The Library's name and description are fixed; only its visibility
+      // can change (the API rejects the other fields for it).
+      const updated = await updateSetlist(
+        setlist.id,
+        setlist.is_library
+          ? { is_public: editIsPublic }
+          : {
+              name: editName.trim(),
+              description: editDescription.trim() || null,
+              is_public: editIsPublic,
+            },
+      );
       setlist = { ...setlist, ...updated };
       editing = false;
     } catch (err) {
@@ -189,13 +199,19 @@
   {#if editing}
     <form class="card narrow" onsubmit={handleSaveEdit}>
       <h2>Edit setlist</h2>
-      <label>
-        Name
-        <input bind:value={editName} required />
-      </label>
-      <label>
-        Description
-        <input bind:value={editDescription} />
+      {#if !setlist.is_library}
+        <label>
+          Name
+          <input bind:value={editName} required />
+        </label>
+        <label>
+          Description
+          <input bind:value={editDescription} />
+        </label>
+      {/if}
+      <label class="checkbox">
+        <input type="checkbox" bind:checked={editIsPublic} />
+        Public — anyone can view it, even without an account
       </label>
       <div class="button-row">
         <button type="submit" disabled={saving}
@@ -214,7 +230,7 @@
   {:else}
     <div class="page-title">
       <h1>{setlist.name}</h1>
-      {#if setlist.is_owner && !setlist.is_library}
+      {#if setlist.is_owner}
         <button class="ghost" onclick={startEdit}>Edit</button>
       {/if}
     </div>

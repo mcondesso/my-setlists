@@ -280,6 +280,26 @@ def test_update_library_setlist_name_is_rejected(authenticated_client: TestClien
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
+def test_setlist_visibility_can_be_toggled_including_the_library(
+    authenticated_client: TestClient,
+) -> None:
+    setlist_id = _create_setlist(authenticated_client)["id"]
+    library = next(s for s in authenticated_client.get("/setlists/").json() if s["is_library"])
+
+    made_public = authenticated_client.patch(f"/setlists/{setlist_id}", json={"is_public": True})
+    library_public = authenticated_client.patch(
+        f"/setlists/{library['id']}", json={"is_public": True}
+    )
+
+    assert made_public.status_code == status.HTTP_200_OK
+    assert made_public.json()["is_public"] is True
+    assert library_public.status_code == status.HTTP_200_OK
+    assert library_public.json()["is_public"] is True
+    # Now visible to logged-out visitors.
+    visitor_view = TestClient(src.app.app).get("/setlists/").json()
+    assert {s["id"] for s in visitor_view} == {setlist_id, library["id"]}
+
+
 def test_update_missing_setlist_returns_404(authenticated_client: TestClient) -> None:
     response = authenticated_client.patch(
         "/setlists/00000000-0000-0000-0000-000000000000", json={"name": "X"}
