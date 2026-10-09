@@ -43,6 +43,7 @@ src/
     types.ts            # TS interfaces mirroring backend/src/models/*.py schemas
   components/
     OwnerBadge.svelte   # "by X · Public" line shared by Setlists and SetlistDetail
+    RecommendationPanel.svelte  # SetlistDetail's recommended song; polls while pending
   pages/
     Login.svelte, Register.svelte, Setlists.svelte, SetlistDetail.svelte
   App.svelte             # header/nav + route switch
